@@ -30,25 +30,25 @@
 
 ---
 
-## v0.2 — 类型完善 + 搜索过滤
+## v0.2 — 类型完善 + 搜索过滤 ✅ 2026-04-28
 
 **目标**: 支持全部 8 种类型并提取 metadata,搜索 / 过滤 / Quick Look 全部可用。
 
 > Done when: 复制富文本、图片、PDF、链接、hex 颜色、SQL 代码、地址 → 卡片渲染对路;搜索框输入关键字命中高亮;`Space` 长按出大图。
 
-- [ ] **F-15** 类型扩展:RTF / HTML / file URL / color / code / address
-- [ ] **F-16** `NSDataDetector` 识别 URL / 地址 / 电话(从 plain text 升级类型)
-- [ ] **F-17** 链接 metadata: `LPMetadataProvider` 抓 title / favicon
-- [ ] **F-18** 图片 metadata: 尺寸 + 主色板(CoreImage `kCIAttributeTypeColor` 取 4 色)
-- [ ] **F-19** 颜色识别:正则匹配 `#RRGGBB` / `rgb(…)` / `oklch(…)`,生成 RGB+HSL 副信息
-- [ ] **F-20** 代码语言推断(扩展名提示 + 关键字启发式:SQL / TypeScript / Shell / JSON / Python …)
-- [ ] **F-21** 实时搜索(标题 + 正文 + 来源 app 字段;debounce 120ms)
-- [ ] **F-22** 类型过滤胶囊(All / Text / Image / Link / Code / Color / File)
-- [ ] **F-23** 命中高亮(`AttributedString.foregroundColor` + `.backgroundColor`)
-- [ ] **F-24** 时间分组标签(Just now / Today / Yesterday / Last week / Older)
-- [ ] **F-25** `Space` 长按 Quick Look 大图预览(松开关闭)
-- [ ] **F-26** `⇧⌘V` 粘贴为纯文本(剥格式)
-- [ ] **F-27** `⌘F` 焦点跳搜索框
+- [x] **F-15** 类型扩展:RTF / HTML / file URL / color / code / address
+- [x] **F-16** `NSDataDetector` 识别 URL / 地址 / 电话(从 plain text 升级类型)
+- [x] **F-17** 链接 metadata: `LPMetadataProvider` 抓 title / favicon
+- [x] **F-18** 图片 metadata: 尺寸 + 主色板(CoreImage `kCIAttributeTypeColor` 取 4 色)
+- [x] **F-19** 颜色识别:正则匹配 `#RRGGBB` / `rgb(…)` / `oklch(…)`,生成 RGB+HSL 副信息
+- [x] **F-20** 代码语言推断(扩展名提示 + 关键字启发式:SQL / TypeScript / Shell / JSON / Python …)
+- [x] **F-21** 实时搜索(标题 + 正文 + 来源 app 字段;debounce 120ms)
+- [x] **F-22** 类型过滤胶囊(All / Text / Image / Link / Code / Color / File)
+- [x] **F-23** 命中高亮(`AttributedString.foregroundColor` + `.backgroundColor`)
+- [x] **F-24** 时间分组标签(Just now / Today / Yesterday / Last week / Older)
+- [x] **F-25** `Space` 长按 Quick Look 大图预览(松开关闭)
+- [x] **F-26** `⇧⌘V` 粘贴为纯文本(剥格式)
+- [x] **F-27** `⌘F` 焦点跳搜索框
 
 ---
 
@@ -96,7 +96,7 @@
 | 版本 | 状态 | 完成日期 | git tag |
 | --- | --- | --- | --- |
 | v0.1 | ✅ 已完成 | 2026-04-28 | v0.1.0 |
-| v0.2 | 未开始 | — | — |
+| v0.2 | ✅ 已完成 | 2026-04-28 | v0.2.0 |
 | v0.3 | 未开始 | — | — |
 | v0.4 | 未开始 | — | — |
 
