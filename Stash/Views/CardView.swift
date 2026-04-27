@@ -26,6 +26,14 @@ struct CardView: View {
         .shadow(color: isSelected ? accentColor.opacity(0.35) : .clear, radius: isSelected ? 8 : 0)
         .offset(y: isSelected ? -6 : 0)
         .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .overlay(alignment: .topTrailing) {
+            if clip.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 10))
+                    .foregroundColor(accentColor)
+                    .padding(6)
+            }
+        }
     }
 
     @ViewBuilder

@@ -13,7 +13,7 @@ final class GalleryPanel: NSPanel {
         self.store = store
 
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 440),
+            contentRect: NSRect(x: 0, y: 0, width: 1000, height: 440),
             styleMask: [.nonactivatingPanel, .titled, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -74,7 +74,9 @@ final class GalleryPanel: NSPanel {
         case 53: // escape
             handleClose()
         case 49: // space
-            toggleQuickLook()
+            NotificationCenter.default.post(name: .stashToggleQuickLook, object: nil)
+        case 51: // delete (backspace)
+            handleDelete()
         default:
             // ⌘1-9 quick paste
             if modifiers == .command,
@@ -82,13 +84,24 @@ final class GalleryPanel: NSPanel {
                let digit = Int(char), (1...9).contains(digit) {
                 onQuickPaste?(digit - 1)
             }
-            // ⌘F focus search
-            else if modifiers == .command, event.charactersIgnoringModifiers == "f" {
-                // Search field is already focused via TextField
-                super.keyDown(with: event)
+            // ⌘P toggle pin
+            else if modifiers == .command, event.charactersIgnoringModifiers == "p" {
+                NotificationCenter.default.post(name: .stashTogglePin, object: nil)
+            }
+            // ⌘E edit
+            else if modifiers == .command, event.charactersIgnoringModifiers == "e" {
+                NotificationCenter.default.post(name: .stashEditClip, object: nil)
+            }
+            // ⌘] next pinboard
+            else if modifiers == .command, event.keyCode == 30 { // ]
+                store.switchToNextPinboard()
+            }
+            // ⌘[ previous pinboard
+            else if modifiers == .command, event.keyCode == 33 { // [
+                store.switchToPreviousPinboard()
             }
             // ⇧⌘V plain paste
-            else if modifiers == [.command, .shift], event.keyCode == 9 { // V key
+            else if modifiers == [.command, .shift], event.keyCode == 9 {
                 handlePlainPaste()
             }
             else {
@@ -105,18 +118,20 @@ final class GalleryPanel: NSPanel {
         onPlainPaste?()
     }
 
+    private func handleDelete() {
+        guard let clip = store.clip(at: store.selectedIndex) else { return }
+        NotificationCenter.default.post(name: .stashDeleteClip, object: clip)
+    }
+
     private func handleClose() {
         orderOut(nil)
         onClose?()
-    }
-
-    private func toggleQuickLook() {
-        // Toggle Quick Look via the galleryView's isQuickLooking state
-        // This is handled through the SwiftUI view's @State
-        NotificationCenter.default.post(name: .stashToggleQuickLook, object: nil)
     }
 }
 
 extension Notification.Name {
     static let stashToggleQuickLook = Notification.Name("stashToggleQuickLook")
+    static let stashDeleteClip = Notification.Name("stashDeleteClip")
+    static let stashTogglePin = Notification.Name("stashTogglePin")
+    static let stashEditClip = Notification.Name("stashEditClip")
 }
