@@ -27,6 +27,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.onQuickPaste = { [weak self] index in
             self?.quickPaste(at: index)
         }
+        panel.onPlainPaste = { [weak self] in
+            self?.pastePlainSelected()
+        }
 
         // Clipboard watcher
         clipboardWatcher = ClipboardWatcher()
@@ -63,6 +66,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func quickPaste(at index: Int) {
         guard let clip = store.clip(at: index) else { return }
         clip.writeToPasteboard()
+        panel.orderOut(nil)
+        PasteSimulator.simulatePaste()
+    }
+
+    private func pastePlainSelected() {
+        guard let clip = store.clip(at: store.selectedIndex) else { return }
+        clip.writeToPasteboard(plainTextOnly: true)
         panel.orderOut(nil)
         PasteSimulator.simulatePaste()
     }

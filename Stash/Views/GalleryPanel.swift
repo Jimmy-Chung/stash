@@ -3,15 +3,17 @@ import AppKit
 
 final class GalleryPanel: NSPanel {
     private let store: ClipboardStore
+    private var galleryView: GalleryView?
     var onPaste: (() -> Void)?
     var onClose: (() -> Void)?
     var onQuickPaste: ((Int) -> Void)?
+    var onPlainPaste: (() -> Void)?
 
     init(store: ClipboardStore) {
         self.store = store
 
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 380),
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 440),
             styleMask: [.nonactivatingPanel, .titled, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -26,13 +28,15 @@ final class GalleryPanel: NSPanel {
         self.hasShadow = true
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        let galleryView = GalleryView(
+        let gallery = GalleryView(
             store: store,
             onPaste: { [weak self] in self?.handlePaste() },
-            onClose: { [weak self] in self?.handleClose() }
+            onClose: { [weak self] in self?.handleClose() },
+            onPlainPaste: { [weak self] in self?.handlePlainPaste() }
         )
+        self.galleryView = gallery
 
-        let hostingView = NSHostingView(rootView: galleryView)
+        let hostingView = NSHostingView(rootView: gallery)
         hostingView.frame = self.contentView?.bounds ?? .zero
         hostingView.autoresizingMask = [.width, .height]
         self.contentView?.addSubview(hostingView)
@@ -45,7 +49,7 @@ final class GalleryPanel: NSPanel {
         guard let screen = NSScreen.main else { return }
         let visibleFrame = screen.visibleFrame
         let panelWidth = visibleFrame.width - 32
-        let panelHeight: CGFloat = 380
+        let panelHeight: CGFloat = 440
         let panelX = visibleFrame.minX + 16
         let panelY = visibleFrame.minY
 
@@ -54,21 +58,40 @@ final class GalleryPanel: NSPanel {
     }
 
     override func keyDown(with event: NSEvent) {
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
         switch event.keyCode {
         case 123: // left arrow
             store.selectPrevious()
         case 124: // right arrow
             store.selectNext()
         case 36: // return
-            handlePaste()
+            if modifiers == .shift {
+                handlePlainPaste()
+            } else {
+                handlePaste()
+            }
         case 53: // escape
             handleClose()
+        case 49: // space
+            toggleQuickLook()
         default:
-            if event.modifierFlags.contains(.command),
+            // ⌘1-9 quick paste
+            if modifiers == .command,
                let char = event.charactersIgnoringModifiers,
                let digit = Int(char), (1...9).contains(digit) {
                 onQuickPaste?(digit - 1)
-            } else {
+            }
+            // ⌘F focus search
+            else if modifiers == .command, event.charactersIgnoringModifiers == "f" {
+                // Search field is already focused via TextField
+                super.keyDown(with: event)
+            }
+            // ⇧⌘V plain paste
+            else if modifiers == [.command, .shift], event.keyCode == 9 { // V key
+                handlePlainPaste()
+            }
+            else {
                 super.keyDown(with: event)
             }
         }
@@ -78,8 +101,22 @@ final class GalleryPanel: NSPanel {
         onPaste?()
     }
 
+    private func handlePlainPaste() {
+        onPlainPaste?()
+    }
+
     private func handleClose() {
         orderOut(nil)
         onClose?()
     }
+
+    private func toggleQuickLook() {
+        // Toggle Quick Look via the galleryView's isQuickLooking state
+        // This is handled through the SwiftUI view's @State
+        NotificationCenter.default.post(name: .stashToggleQuickLook, object: nil)
+    }
+}
+
+extension Notification.Name {
+    static let stashToggleQuickLook = Notification.Name("stashToggleQuickLook")
 }
