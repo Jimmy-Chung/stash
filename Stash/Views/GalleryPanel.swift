@@ -45,6 +45,13 @@ final class GalleryPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 
+    override func resignKey() {
+        super.resignKey()
+        if PreferencesStore.shared.autoHideOnFocusLoss {
+            orderOut(nil)
+        }
+    }
+
     func show() {
         guard let screen = NSScreen.main else { return }
         let visibleFrame = screen.visibleFrame
