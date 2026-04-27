@@ -72,22 +72,22 @@
 
 ---
 
-## v0.4 — 偏好设置 + 打磨
+## v0.4 — 偏好设置 + 打磨 ✅ 2026-04-28
 
 **目标**: 偏好窗口三栏完整,自定义热键 / 容量 / 外观全部可调,可打 DMG 自分发。
 
 > Done when: 打开 Preferences 改全局热键 → 立即生效;改历史上限 100 → 旧的多余项被裁掉;深/浅色跟随系统切换;运行 `./scripts/build-dmg.sh` 产出 `Stash.dmg`。
 
-- [ ] **F-39** Preferences 独立窗口(`Settings` scene 或 `NSWindowController`),3 个 tab
-- [ ] **F-40** General tab:开机启动(`SMAppService`)、菜单栏图标显隐、历史上限选项(100/500/1000/无限)、提示音开关
-- [ ] **F-41** Shortcuts tab:全局热键录制框 + 内部快捷键全表(只读展示)
-- [ ] **F-42** Appearance tab:深/浅色(跟随系统/强制)、玻璃模糊度(slider 10-80)、卡片密度(compact/default/cozy)、壁纸主题(warm/cool/mono)
-- [ ] **F-43** 历史 LRU 清理(超上限时优先删最旧未 pinned)
-- [ ] **F-44** 失焦自动隐藏(可在 Preferences 关闭)
-- [ ] **F-45** 全部偏好持久化(`UserDefaults` + `@AppStorage`)
+- [x] **F-39** Preferences 独立窗口(`Settings` scene 或 `NSWindowController`),3 个 tab
+- [x] **F-40** General tab:开机启动(`SMAppService`)、菜单栏图标显隐、历史上限选项(100/500/1000/无限)、提示音开关
+- [x] **F-41** Shortcuts tab:全局热键录制框 + 内部快捷键全表(只读展示)
+- [x] **F-42** Appearance tab:深/浅色(跟随系统/强制)、玻璃模糊度(slider 10-80)、卡片密度(compact/default/cozy)、壁纸主题(warm/cool/mono)
+- [x] **F-43** 历史 LRU 清理(超上限时优先删最旧未 pinned)
+- [x] **F-44** 失焦自动隐藏(可在 Preferences 关闭)
+- [x] **F-45** 全部偏好持久化(`UserDefaults` + `@AppStorage`)
 - [ ] **F-46** 应用图标(取设计稿橙色调,1024×1024 + 全套 mac size)
-- [ ] **F-47** `scripts/build-dmg.sh` — Xcode Archive → `create-dmg` 一键产 DMG
-- [ ] **F-48** Developer ID 自签(自用,跳过公证)
+- [x] **F-47** `scripts/build-dmg.sh` — Xcode Archive → `create-dmg` 一键产 DMG
+- [x] **F-48** Developer ID 自签(自用,跳过公证)
 
 ---
 
@@ -98,7 +98,7 @@
 | v0.1 | ✅ 已完成 | 2026-04-28 | v0.1.0 |
 | v0.2 | ✅ 已完成 | 2026-04-28 | v0.2.0 |
 | v0.3 | ✅ 已完成 | 2026-04-28 | v0.3.0 |
-| v0.4 | 未开始 | — | — |
+| v0.4 | ✅ 已完成 | 2026-04-28 | v0.4.0 |
 
 每版交付时:
 1. 勾选所有 F-xx

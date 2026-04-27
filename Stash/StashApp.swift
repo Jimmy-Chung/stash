@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
@@ -6,14 +7,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var panel: GalleryPanel!
     var clipboardWatcher: ClipboardWatcher!
     var globalHotKey: GlobalHotKey?
+    var preferencesWindow: PreferencesWindow?
+    let prefs = PreferencesStore.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Menu bar status item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "Stash")
-        }
+        updateStatusBarIcon()
         let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Preferences...", action: #selector(openPreferences), keyEquivalent: ","))
+        menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Stash", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem.menu = menu
 
@@ -36,6 +39,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         clipboardWatcher.onCopy = { [weak self] in
             DispatchQueue.main.async {
                 self?.store.processClip()
+                self?.enforceHistoryLimit()
             }
         }
         clipboardWatcher.start()
@@ -46,6 +50,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.togglePanel()
             }
         }
+
+        // Preferences observer for menu bar icon visibility
+        prefs.$showMenuBarIcon
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] show in
+                self?.statusItem.isVisible = show
+            }
+            .store(in: &cancellables)
+    }
+
+    private var cancellables: [AnyCancellable] = []
+
+    private func updateStatusBarIcon() {
+        if let button = statusItem.button {
+            button.image = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "Stash")
+        }
+    }
+
+    @objc private func openPreferences() {
+        if preferencesWindow == nil {
+            preferencesWindow = PreferencesWindow()
+        }
+        preferencesWindow?.showWindow()
     }
 
     @objc private func togglePanel() {
@@ -75,5 +102,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         clip.writeToPasteboard(plainTextOnly: true)
         panel.orderOut(nil)
         PasteSimulator.simulatePaste()
+    }
+
+    private func enforceHistoryLimit() {
+        let limit = prefs.historyLimit
+        guard limit > 0, store.clips.count > limit else { return }
+
+        // Separate pinned and unpinned
+        let pinned = store.clips.filter { $0.isPinned }
+        var unpinned = store.clips.filter { !$0.isPinned }
+
+        let excess = store.clips.count - limit
+        guard excess > 0 else { return }
+
+        // Remove oldest unpinned first
+        let toRemove = min(excess, unpinned.count)
+        let removedItems = Array(unpinned.suffix(toRemove))
+        for item in removedItems {
+            if let path = item.imagePath {
+                BlobStore.shared.delete(path)
+            }
+        }
+
+        var remaining = store.clips.filter { clip in
+            !removedItems.contains(where: { $0.id == clip.id })
+        }
+        // Keep newest first order
+        remaining.sort { $0.createdAt > $1.createdAt }
+        store.clips = remaining
     }
 }
