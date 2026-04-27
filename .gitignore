@@ -1,0 +1,23 @@
+# Xcode
+DerivedData/
+*.xcuserdata
+*.xcworkspace
+!*.xcodeproj
+xcuserdata/
+
+# Build
+build/
+*.o
+*.d
+*.dia
+
+# macOS
+.DS_Store
+*.swp
+
+# IDE
+.idea/
+.vscode/
+
+# OMC internal
+.omc/

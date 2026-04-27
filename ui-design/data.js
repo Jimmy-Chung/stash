@@ -1,0 +1,198 @@
+// Sample clipboard data — mixed scenarios (dev, design, office)
+window.SAMPLE_CLIPS = [
+  {
+    id: "c01",
+    type: "text",
+    title: "Meeting note",
+    content: "Sync with platform team on the new auth flow — need to confirm SSO scope before Friday's review. Add Maya as required reviewer.",
+    app: "Notes",
+    appColor: "#FFC542",
+    time: "Just now",
+    pinboard: null,
+  },
+  {
+    id: "c02",
+    type: "color",
+    title: "Brand accent",
+    content: "#F4A261",
+    app: "Figma",
+    appColor: "#A259FF",
+    time: "2 min ago",
+    pinboard: "design",
+  },
+  {
+    id: "c03",
+    type: "code",
+    title: "useDebounce hook",
+    language: "TypeScript",
+    content: `export function useDebounce<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}`,
+    app: "VS Code",
+    appColor: "#0098FF",
+    time: "4 min ago",
+    pinboard: "dev",
+  },
+  {
+    id: "c04",
+    type: "link",
+    title: "Glassmorphism in modern UI",
+    content: "https://uxdesign.cc/glassmorphism-and-the-physical-feel-of-software",
+    favicon: "UX",
+    favColor: "#0F172A",
+    app: "Safari",
+    appColor: "#1A8FFF",
+    time: "11 min ago",
+    pinboard: null,
+  },
+  {
+    id: "c05",
+    type: "image",
+    title: "Hero exploration v3",
+    content: "hero_v3.png",
+    dims: "2400 × 1600",
+    size: "1.4 MB",
+    swatch: ["#264653", "#2A9D8F", "#E9C46A", "#F4A261"],
+    app: "Figma",
+    appColor: "#A259FF",
+    time: "18 min ago",
+    pinboard: "design",
+  },
+  {
+    id: "c06",
+    type: "text",
+    title: "Email draft",
+    content: "Hi Lin — circling back on the Q2 roadmap. Would love your read on the platform investments slide before EOD. Happy to jump on a quick call if easier.",
+    app: "Mail",
+    appColor: "#0098FF",
+    time: "24 min ago",
+    pinboard: null,
+  },
+  {
+    id: "c07",
+    type: "code",
+    title: "psql query",
+    language: "SQL",
+    content: `SELECT user_id, COUNT(*) AS sessions
+FROM events
+WHERE event_type = 'paste'
+  AND created_at > now() - interval '7 days'
+GROUP BY user_id
+ORDER BY sessions DESC
+LIMIT 25;`,
+    app: "Terminal",
+    appColor: "#1F2937",
+    time: "32 min ago",
+    pinboard: "dev",
+  },
+  {
+    id: "c08",
+    type: "address",
+    title: "Office address",
+    content: "548 Market St, Suite 21401, San Francisco, CA 94104",
+    app: "Maps",
+    appColor: "#34C759",
+    time: "1 hr ago",
+    pinboard: null,
+  },
+  {
+    id: "c09",
+    type: "link",
+    title: "Pull request #2487",
+    content: "https://github.com/stash/app/pull/2487",
+    favicon: "GH",
+    favColor: "#0D1117",
+    app: "Safari",
+    appColor: "#1A8FFF",
+    time: "1 hr ago",
+    pinboard: "dev",
+  },
+  {
+    id: "c10",
+    type: "text",
+    title: "Tagline draft",
+    content: "Your clipboard, but it remembers — and it's beautiful about it.",
+    app: "Notion",
+    appColor: "#000000",
+    time: "2 hr ago",
+    pinboard: null,
+  },
+  {
+    id: "c11",
+    type: "file",
+    title: "Q2-roadmap.pdf",
+    content: "Q2-roadmap.pdf",
+    size: "3.2 MB",
+    app: "Finder",
+    appColor: "#1A8FFF",
+    time: "2 hr ago",
+    pinboard: null,
+  },
+  {
+    id: "c12",
+    type: "color",
+    title: "Background tint",
+    content: "#264653",
+    app: "Figma",
+    appColor: "#A259FF",
+    time: "3 hr ago",
+    pinboard: "design",
+  },
+  {
+    id: "c13",
+    type: "image",
+    title: "Avatar crop",
+    content: "avatar.png",
+    dims: "512 × 512",
+    size: "84 KB",
+    swatch: ["#F4A261", "#E76F51", "#2A9D8F"],
+    app: "Preview",
+    appColor: "#3B82F6",
+    time: "Yesterday",
+    pinboard: null,
+  },
+  {
+    id: "c14",
+    type: "text",
+    title: "Shipping address",
+    content: "Ada Chen\n221B Baker Lane\nPalo Alto, CA 94301\n+1 (415) 555-0142",
+    app: "Mail",
+    appColor: "#0098FF",
+    time: "Yesterday",
+    pinboard: "personal",
+  },
+  {
+    id: "c15",
+    type: "code",
+    title: "Deploy command",
+    language: "Shell",
+    content: `pnpm build && \\
+  AWS_PROFILE=prod pnpm deploy --stack web --confirm`,
+    app: "Terminal",
+    appColor: "#1F2937",
+    time: "Yesterday",
+    pinboard: "dev",
+  },
+];
+
+window.PINBOARDS = [
+  { id: "all", label: "All", icon: "all", count: 15 },
+  { id: "dev", label: "Engineering", icon: "code", count: 4, accent: "#7DD3FC" },
+  { id: "design", label: "Design refs", icon: "palette", count: 3, accent: "#F4A261" },
+  { id: "personal", label: "Personal", icon: "heart", count: 1, accent: "#F472B6" },
+];
+
+window.TYPE_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "text", label: "Text" },
+  { id: "image", label: "Image" },
+  { id: "link", label: "Link" },
+  { id: "code", label: "Code" },
+  { id: "color", label: "Color" },
+  { id: "file", label: "File" },
+];
