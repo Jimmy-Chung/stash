@@ -26,6 +26,7 @@
 		AF54D394108FB87545EA7935 /* GalleryPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3185B68F908B86DA00C6399 /* GalleryPanel.swift */; };
 		B790160B7DAAC2FA787342DD /* StashApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18DBCC4E2EF53EB5BDC7A134 /* StashApp.swift */; };
 		C36874C5D437344BF30CC185 /* ClipModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C86E3DFBBEA5BA17004B6AB /* ClipModelTests.swift */; };
+		EB4F4EC238D74A9892A3B806 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864CE2748BAFE1FDA51405B8 /* main.swift */; };
 		EE878391F0C047154AE73554 /* DedupeHasher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F85764B7CC1E9E867269C9 /* DedupeHasher.swift */; };
 		EF7CC96DC41EEA9206EDDE83 /* StashUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56A1194B5EEC7B3FFE865C9 /* StashUITests.swift */; };
 /* End PBXBuildFile section */
@@ -57,6 +58,7 @@
 		4A2E39F3AECE310F22FA2FBE /* StashUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StashUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A344FCD7163062E5827A10F /* ClipParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipParserTests.swift; sourceTree = "<group>"; };
 		7CB5BCF3BE0AFB376515E938 /* ClipboardWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWatcher.swift; sourceTree = "<group>"; };
+		864CE2748BAFE1FDA51405B8 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		89E70440C02F28B6D12EE5AC /* ClipParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipParser.swift; sourceTree = "<group>"; };
 		8C86E3DFBBEA5BA17004B6AB /* ClipModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipModelTests.swift; sourceTree = "<group>"; };
 		8D7C15C7AD3BD68AD2F56486 /* DedupeHasherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DedupeHasherTests.swift; sourceTree = "<group>"; };
@@ -70,6 +72,7 @@
 		D3CCC930B1A3402AC0C8CDD2 /* AccessibilityChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityChecker.swift; sourceTree = "<group>"; };
 		DE2F5EF7DBCD6B180F040246 /* Clip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clip.swift; sourceTree = "<group>"; };
 		F56A1194B5EEC7B3FFE865C9 /* StashUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StashUITests.swift; sourceTree = "<group>"; };
+		FB0FE92F4B2DA1E7CC7DF3AD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		FE48DBAB68E9E944D7AA11A7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FF2AED5E66FAB2122C8437E2 /* Stash.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Stash.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -123,6 +126,8 @@
 			children = (
 				FE48DBAB68E9E944D7AA11A7 /* Assets.xcassets */,
 				2A19484CE74671F00611E323 /* ClipboardStore.swift */,
+				FB0FE92F4B2DA1E7CC7DF3AD /* Info.plist */,
+				864CE2748BAFE1FDA51405B8 /* main.swift */,
 				18DBCC4E2EF53EB5BDC7A134 /* StashApp.swift */,
 				9CC5E523AE593035ACA6B2F2 /* Models */,
 				BB45C1F26DFB869B198A4BEB /* Services */,
@@ -291,6 +296,7 @@
 				6B2459D14F7EF4DD5C5B7D5F /* GlobalHotKey.swift in Sources */,
 				9DDF0E598DBA178132E445A8 /* PasteSimulator.swift in Sources */,
 				B790160B7DAAC2FA787342DD /* StashApp.swift in Sources */,
+				EB4F4EC238D74A9892A3B806 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -329,8 +335,8 @@
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSUIElement = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Stash/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -407,8 +413,8 @@
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSUIElement = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Stash/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
