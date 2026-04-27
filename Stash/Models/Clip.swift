@@ -4,10 +4,10 @@ import AppKit
 struct Clip: Codable, Identifiable {
     let id: UUID
     let type: ClipType
-    let textContent: String?
+    var textContent: String?
     var imagePath: String?
     let sourceApp: String?
-    let contentHash: String
+    var contentHash: String
     let createdAt: Date
 
     // v0.2 metadata
@@ -20,6 +20,12 @@ struct Clip: Codable, Identifiable {
     var colorRGB: String?
     var codeLanguage: String?
     var fileName: String?
+
+    // v0.3 organization
+    var pinboardId: UUID?
+    var pinnedAt: Date?
+
+    var isPinned: Bool { pinnedAt != nil }
 
     init(
         type: ClipType,
@@ -35,7 +41,9 @@ struct Clip: Codable, Identifiable {
         colorHex: String? = nil,
         colorRGB: String? = nil,
         codeLanguage: String? = nil,
-        fileName: String? = nil
+        fileName: String? = nil,
+        pinboardId: UUID? = nil,
+        pinnedAt: Date? = nil
     ) {
         self.id = UUID()
         self.type = type
@@ -53,6 +61,8 @@ struct Clip: Codable, Identifiable {
         self.colorRGB = colorRGB
         self.codeLanguage = codeLanguage
         self.fileName = fileName
+        self.pinboardId = pinboardId
+        self.pinnedAt = pinnedAt
     }
 
     func writeToPasteboard(plainTextOnly: Bool = false) {

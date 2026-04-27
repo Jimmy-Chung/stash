@@ -7,17 +7,29 @@ struct GalleryView: View {
     var onPlainPaste: (() -> Void)?
 
     @State private var isQuickLooking = false
+    @State private var editingClip: Clip?
+    @State private var showDeleteConfirmation = false
+    @State private var clipToDelete: Clip?
+
+    private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
 
     var body: some View {
-        VStack(spacing: 0) {
-            searchBar
-            filterBar
-            if store.displayClips.isEmpty {
-                emptyState
-            } else {
-                cardGallery
+        HStack(spacing: 0) {
+            SidebarView(store: store)
+
+            Divider()
+                .background(Color.white.opacity(0.1))
+
+            VStack(spacing: 0) {
+                searchBar
+                filterBar
+                if store.displayClips.isEmpty {
+                    emptyState
+                } else {
+                    cardGallery
+                }
+                footer
             }
-            footer
         }
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 22))
@@ -28,12 +40,44 @@ struct GalleryView: View {
         .sheet(isPresented: $isQuickLooking) {
             quickLookView
         }
+        .sheet(item: $editingClip) { clip in
+            EditClipView(clip: clip, store: store)
+        }
+        .alert("Delete Pinned Item?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { clipToDelete = nil }
+            Button("Delete", role: .destructive) {
+                if let clip = clipToDelete {
+                    store.deleteClip(clip)
+                    clipToDelete = nil
+                }
+            }
+        } message: {
+            Text("This item is pinned. Are you sure you want to delete it?")
+        }
         .onReceive(NotificationCenter.default.publisher(for: .stashToggleQuickLook)) { _ in
             isQuickLooking.toggle()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .stashDeleteClip)) { notification in
+            if let clip = notification.object as? Clip {
+                if clip.isPinned {
+                    clipToDelete = clip
+                    showDeleteConfirmation = true
+                } else {
+                    store.deleteClip(clip)
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .stashTogglePin)) { _ in
+            if let clip = store.clip(at: store.selectedIndex) {
+                store.togglePin(clip)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .stashEditClip)) { _ in
+            if let clip = store.clip(at: store.selectedIndex) {
+                editingClip = clip
+            }
+        }
     }
-
-    private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
 
     // MARK: - Search Bar
 
@@ -138,6 +182,14 @@ struct GalleryView: View {
                                     .onTapGesture {
                                         store.selectedIndex = globalIdx
                                     }
+                                    .contextMenu {
+                                        ClipContextMenu(
+                                            clip: clip,
+                                            store: store,
+                                            onPaste: onPaste,
+                                            onEdit: { editingClip = clip }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -214,6 +266,7 @@ struct GalleryView: View {
                 footerHint("\u{2190} \u{2192}", "Navigate")
                 footerHint("\u{2318}1-9", "Quick Paste")
                 footerHint("Space", "Preview")
+                footerHint("\u{2318}P", "Pin")
             }
             .font(.system(size: 11.5))
 
