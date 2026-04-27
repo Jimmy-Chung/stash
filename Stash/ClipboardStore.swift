@@ -27,6 +27,7 @@ final class ClipboardStore: ObservableObject {
         var imagePath: String? = nil
         if result.type == .image, let imageData = result.imageData {
             imagePath = BlobStore.shared.write(imageData)
+            if imagePath == nil { return }
         }
 
         let sourceApp = NSWorkspace.shared.frontmostApplication?.localizedName

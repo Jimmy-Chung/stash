@@ -3,6 +3,7 @@ import AppKit
 
 final class GlobalHotKey {
     private var hotKeyRef: EventHotKeyRef?
+    private var eventHandlerRef: EventHandlerRef?
     private let handler: () -> Void
     private static var nextID: UInt32 = 1
 
@@ -20,7 +21,7 @@ final class GlobalHotKey {
         let modifiers: UInt32
 
         static let commandShiftV = KeyboardShortcut(
-            keyCode: 0x09, // V key
+            keyCode: 0x09,
             modifiers: UInt32(cmdKey | shiftKey)
         )
     }
@@ -40,11 +41,13 @@ final class GlobalHotKey {
 
         guard status == noErr else { return }
 
-        // Install event handler
         var eventType = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
             eventKind: OSType(kEventHotKeyPressed)
         )
+
+        // Pass retained self to ensure lifetime during callback
+        let selfPtr = Unmanaged.passRetained(self).toOpaque()
 
         InstallEventHandler(
             GetApplicationEventTarget(),
@@ -56,12 +59,18 @@ final class GlobalHotKey {
             },
             1,
             &eventType,
-            Unmanaged.passUnretained(self).toOpaque(),
-            nil
+            selfPtr,
+            &eventHandlerRef
         )
     }
 
     private func unregister() {
+        if let ref = eventHandlerRef {
+            RemoveEventHandler(ref)
+            eventHandlerRef = nil
+            // Balance the passRetained from register
+            Unmanaged<GlobalHotKey>.fromOpaque(Unmanaged.passUnretained(self).toOpaque()).release()
+        }
         if let ref = hotKeyRef {
             UnregisterEventHotKey(ref)
             hotKeyRef = nil

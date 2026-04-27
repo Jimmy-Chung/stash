@@ -10,8 +10,7 @@ final class BlobStoreTests: XCTestCase {
         let store = BlobStore(directory: tempDir)
 
         let data = Data("fake png data for test".utf8)
-        let path = store.write(data)
-
+        let path = store.write(data)!
         let readBack = store.read(path: path)
         XCTAssertEqual(data, readBack)
 
@@ -25,7 +24,7 @@ final class BlobStoreTests: XCTestCase {
         let store = BlobStore(directory: tempDir)
 
         let data = Data("test".utf8)
-        let path = store.write(data)
+        let path = store.write(data)!
 
         store.delete(path)
         let readBack = store.read(path: path)

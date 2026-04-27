@@ -15,12 +15,15 @@ final class BlobStore {
         try? FileManager.default.createDirectory(at: self.baseDirectory, withIntermediateDirectories: true)
     }
 
-    @discardableResult
-    func write(_ data: Data) -> String {
+    func write(_ data: Data) -> String? {
         let fileName = UUID().uuidString + ".png"
         let url = baseDirectory.appendingPathComponent(fileName)
-        try? data.write(to: url)
-        return url.path
+        do {
+            try data.write(to: url)
+            return url.path
+        } catch {
+            return nil
+        }
     }
 
     func read(path: String) -> Data? {
@@ -28,6 +31,8 @@ final class BlobStore {
     }
 
     func delete(_ path: String) {
-        try? FileManager.default.removeItem(atPath: path)
+        let resolved = URL(fileURLWithPath: path).standardized
+        guard resolved.path.hasPrefix(baseDirectory.standardized.path) else { return }
+        try? FileManager.default.removeItem(at: resolved)
     }
 }
