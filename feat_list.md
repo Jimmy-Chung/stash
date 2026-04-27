@@ -7,26 +7,26 @@
 
 ---
 
-## v0.1 — 最小可用核心 (MVP)
+## v0.1 — 最小可用核心 (MVP) ✅ 2026-04-28
 
 **目标**: 跑通 "复制 → 唤起 → 选 → 粘贴" 主链路,只支持最常用 3 种类型(text / image / URL)。
 
 > Done when: 在任何 app 里复制一段文字或一张图,按 ⌘⇧V 唤起浮窗,看到刚复制的卡片在最前面,按 Enter 或 ⌘1 粘贴回原 app。
 
-- [ ] **F-01** Xcode SwiftUI macOS app 工程脚手架(`Stash.xcodeproj`,`xcodegen` 生成)
-- [ ] **F-02** 菜单栏图标 + 退出菜单(`MenuBarExtra`)
-- [ ] **F-03** 全局热键 `⌘⇧V` 唤起 / 隐藏浮窗(HotKey SPM 包)
-- [ ] **F-04** 无边框玻璃浮窗(`NSPanel` + `.background(.ultraThinMaterial)`,底部贴边)
-- [ ] **F-05** `NSPasteboard` 轮询(0.5s,`changeCount` diff)
-- [ ] **F-06** 类型识别:plain text / image (PNG/JPEG) / URL
-- [ ] **F-07** SwiftData `@Model Clip` 持久化(text 内联;image 落盘 + 路径引用)
-- [ ] **F-08** `BlobStore` — 图片落盘到 `~/Library/Application Support/Stash/Blobs/{uuid}.png`
-- [ ] **F-09** 横向卡片画廊(`ScrollView(.horizontal)`,3 种类型基础渲染)
-- [ ] **F-10** 键盘 `← →` 切换、`Enter` 粘贴、`Esc` 关闭(`.onKeyPress`)
-- [ ] **F-11** `⌘1` – `⌘9` 快捷粘贴前 9 项
-- [ ] **F-12** 模拟 `⌘V` 粘贴到唤起前的前台 app(`CGEventCreateKeyboardEvent` + `kCGHIDEventTap`)
-- [ ] **F-13** Accessibility 权限缺失引导(检测 + 弹窗 + 跳系统设置)
-- [ ] **F-14** 历史去重(`SHA256` hash,连续相同不重复存)
+- [x] **F-01** Xcode SwiftUI macOS app 工程脚手架(`Stash.xcodeproj`,`xcodegen` 生成)
+- [x] **F-02** 菜单栏图标 + 退出菜单(`MenuBarExtra`)
+- [x] **F-03** 全局热键 `⌘⇧V` 唤起 / 隐藏浮窗(HotKey SPM 包)
+- [x] **F-04** 无边框玻璃浮窗(`NSPanel` + `.background(.ultraThinMaterial)`,底部贴边)
+- [x] **F-05** `NSPasteboard` 轮询(0.5s,`changeCount` diff)
+- [x] **F-06** 类型识别:plain text / image (PNG/JPEG) / URL
+- [x] **F-07** SwiftData `@Model Clip` 持久化(text 内联;image 落盘 + 路径引用)
+- [x] **F-08** `BlobStore` — 图片落盘到 `~/Library/Application Support/Stash/Blobs/{uuid}.png`
+- [x] **F-09** 横向卡片画廊(`ScrollView(.horizontal)`,3 种类型基础渲染)
+- [x] **F-10** 键盘 `← →` 切换、`Enter` 粘贴、`Esc` 关闭(`.onKeyPress`)
+- [x] **F-11** `⌘1` – `⌘9` 快捷粘贴前 9 项
+- [x] **F-12** 模拟 `⌘V` 粘贴到唤起前的前台 app(`CGEventCreateKeyboardEvent` + `kCGHIDEventTap`)
+- [x] **F-13** Accessibility 权限缺失引导(检测 + 弹窗 + 跳系统设置)
+- [x] **F-14** 历史去重(`SHA256` hash,连续相同不重复存)
 
 ---
 
@@ -95,7 +95,7 @@
 
 | 版本 | 状态 | 完成日期 | git tag |
 | --- | --- | --- | --- |
-| v0.1 | 未开始 | — | — |
+| v0.1 | ✅ 已完成 | 2026-04-28 | v0.1.0 |
 | v0.2 | 未开始 | — | — |
 | v0.3 | 未开始 | — | — |
 | v0.4 | 未开始 | — | — |
