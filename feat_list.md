@@ -52,23 +52,23 @@
 
 ---
 
-## v0.3 — 组织能力
+## v0.3 — 组织能力 ✅ 2026-04-28
 
 **目标**: 用户能自建分类(Pinboards),Pin / 删除 / 编辑 / 移动剪贴。
 
 > Done when: 创建 "Engineering" 和 "Design refs" 两个 Pinboard,把代码片段拖进 Engineering、把图片拖进 Design refs;`⌘P` 置顶常用项;右键菜单完整可点。
 
-- [ ] **F-28** `Pinboard` SwiftData 模型(id / name / icon / accent / order)
-- [ ] **F-29** 侧栏 Pinboards 列表(All / 用户自建 / + New Pinboard)
-- [ ] **F-30** 新建 / 重命名 / 删除 Pinboard
-- [ ] **F-31** `⌘P` 置顶 / 取消置顶(`Clip.pinnedAt: Date?`)
-- [ ] **F-32** 置顶项排到画廊最前
-- [ ] **F-33** `⌫` / `Delete` 删除剪贴
-- [ ] **F-34** 右键菜单:Paste / Copy again / Pin / Move to Pinboard… / Edit / Delete
-- [ ] **F-35** 编辑模式 — 纯文本可改(图片/文件不可改,只能 rename)
-- [ ] **F-36** `⌘[` `⌘]` 切换 Pinboard
-- [ ] **F-37** 拖拽卡片 → Pinboard 归类(`.draggable` / `.dropDestination`)
-- [ ] **F-38** 删除二次确认(只对 Pin 过的项要确认)
+- [x] **F-28** `Pinboard` SwiftData 模型(id / name / icon / accent / order)
+- [x] **F-29** 侧栏 Pinboards 列表(All / 用户自建 / + New Pinboard)
+- [x] **F-30** 新建 / 重命名 / 删除 Pinboard
+- [x] **F-31** `⌘P` 置顶 / 取消置顶(`Clip.pinnedAt: Date?`)
+- [x] **F-32** 置顶项排到画廊最前
+- [x] **F-33** `⌫` / `Delete` 删除剪贴
+- [x] **F-34** 右键菜单:Paste / Copy again / Pin / Move to Pinboard… / Edit / Delete
+- [x] **F-35** 编辑模式 — 纯文本可改(图片/文件不可改,只能 rename)
+- [x] **F-36** `⌘[` `⌘]` 切换 Pinboard
+- [x] **F-37** 拖拽卡片 → Pinboard 归类(`.draggable` / `.dropDestination`)
+- [x] **F-38** 删除二次确认(只对 Pin 过的项要确认)
 
 ---
 
@@ -97,7 +97,7 @@
 | --- | --- | --- | --- |
 | v0.1 | ✅ 已完成 | 2026-04-28 | v0.1.0 |
 | v0.2 | ✅ 已完成 | 2026-04-28 | v0.2.0 |
-| v0.3 | 未开始 | — | — |
+| v0.3 | ✅ 已完成 | 2026-04-28 | v0.3.0 |
 | v0.4 | 未开始 | — | — |
 
 每版交付时:
