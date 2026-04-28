@@ -54,7 +54,9 @@ enum ClipParser {
         if let data = pasteboard.data(forType: .rtf) {
             let attrString = try? NSAttributedString(data: data, options: [.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil)
             let text = attrString?.string ?? ""
-            guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return nil }
+            if let special = detectSpecialType(trimmed) { return special }
             return ParsedClip(type: .rtf, textContent: text, imageData: nil)
         }
 
@@ -62,7 +64,9 @@ enum ClipParser {
         if let data = pasteboard.data(forType: .html) {
             let html = String(data: data, encoding: .utf8) ?? ""
             let text = stripHTMLTags(html)
-            guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return nil }
+            if let special = detectSpecialType(trimmed) { return special }
             return ParsedClip(type: .html, textContent: text, imageData: nil)
         }
 
@@ -77,33 +81,33 @@ enum ClipParser {
         if let text = pasteboard.string(forType: .string),
            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            // Check if text is a URL
-            if let url = URL(string: trimmed),
-               let scheme = url.scheme,
-               (scheme == "http" || scheme == "https"),
-               url.host != nil {
-                return ParsedClip(type: .link, textContent: trimmed, imageData: nil)
-            }
-
-            // Color detection
-            if let color = ColorParser.parse(trimmed) {
-                return ParsedClip(type: .color, textContent: trimmed, imageData: nil, colorHex: color.hex, colorRGB: color.rgb)
-            }
-
-            // Address detection
-            if let address = AddressDetector.detect(in: trimmed) {
-                return ParsedClip(type: .address, textContent: address, imageData: nil)
-            }
-
-            // Code detection
-            if let detection = CodeLanguageDetector.detect(trimmed) {
-                return ParsedClip(type: .code, textContent: trimmed, imageData: nil, codeLanguage: detection.language)
-            }
-
+            if let special = detectSpecialType(trimmed) { return special }
             return ParsedClip(type: .text, textContent: text, imageData: nil)
         }
 
+        return nil
+    }
+
+    private static func detectSpecialType(_ trimmed: String) -> ParsedClip? {
+        // URL
+        if let url = URL(string: trimmed),
+           let scheme = url.scheme,
+           (scheme == "http" || scheme == "https"),
+           url.host != nil {
+            return ParsedClip(type: .link, textContent: trimmed, imageData: nil)
+        }
+        // Color
+        if let color = ColorParser.parse(trimmed) {
+            return ParsedClip(type: .color, textContent: trimmed, imageData: nil, colorHex: color.hex, colorRGB: color.rgb)
+        }
+        // Address
+        if let address = AddressDetector.detect(in: trimmed) {
+            return ParsedClip(type: .address, textContent: address, imageData: nil)
+        }
+        // Code
+        if let detection = CodeLanguageDetector.detect(trimmed) {
+            return ParsedClip(type: .code, textContent: trimmed, imageData: nil, codeLanguage: detection.language)
+        }
         return nil
     }
 

@@ -8,6 +8,7 @@ struct ClipContextMenu: View {
 
     @State private var isRenaming = false
     @State private var newName = ""
+    @State private var showDeleteConfirmation = false
 
     var body: some View {
         Group {
@@ -53,7 +54,11 @@ struct ClipContextMenu: View {
             Divider()
 
             Button("Delete", role: .destructive) {
-                store.deleteClip(clip)
+                if clip.isPinned {
+                    showDeleteConfirmation = true
+                } else {
+                    store.deleteClip(clip)
+                }
             }
         }
         .alert("Rename", isPresented: $isRenaming) {
@@ -62,6 +67,14 @@ struct ClipContextMenu: View {
             Button("Save") {
                 clip.fileName = newName
             }
+        }
+        .alert("Delete Pinned Item?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                store.deleteClip(clip)
+            }
+        } message: {
+            Text("This item is pinned. Are you sure you want to delete it?")
         }
     }
 }

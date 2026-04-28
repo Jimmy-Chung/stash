@@ -51,6 +51,89 @@ final class GalleryPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 
+    private var isSpaceDown = false
+
+    override func keyDown(with event: NSEvent) {
+        let mods = event.modifierFlags
+        let keyCode = event.keyCode
+        let chars = event.charactersIgnoringModifiers
+
+        // Command combinations
+        if mods.contains(.command) {
+            // ⌘1-9: Quick paste
+            if let char = chars, let digit = Int(char), (1...9).contains(digit) {
+                if let clip = store.clip(at: digit - 1) {
+                    clip.writeToPasteboard()
+                    handleClose()
+                    PasteSimulator.simulatePaste()
+                }
+                return
+            }
+            switch chars {
+            case "p":
+                NotificationCenter.default.post(name: .stashTogglePin, object: nil)
+                return
+            case "e":
+                NotificationCenter.default.post(name: .stashEditClip, object: nil)
+                return
+            case "f":
+                focusSearchField()
+                return
+            case "[":
+                store.switchToPreviousPinboard()
+                return
+            case "]":
+                store.switchToNextPinboard()
+                return
+            default: break
+            }
+        }
+
+        // Shift+Return: plain paste
+        if keyCode == 36 && mods.contains(.shift) && !mods.contains(.command) {
+            handlePlainPaste()
+            return
+        }
+
+        // Return: paste
+        if keyCode == 36 && !mods.contains(.command) {
+            handlePaste()
+            return
+        }
+
+        switch keyCode {
+        case 123: // Left
+            store.selectPrevious()
+        case 124: // Right
+            store.selectNext()
+        case 53: // Escape
+            handleClose()
+        case 49: // Space
+            if !isSpaceDown {
+                isSpaceDown = true
+                NotificationCenter.default.post(name: .stashToggleQuickLook, object: nil)
+            }
+        case 51: // Delete
+            if let clip = store.clip(at: store.selectedIndex) {
+                if clip.isPinned {
+                    NotificationCenter.default.post(name: .stashDeleteClip, object: clip)
+                } else {
+                    store.deleteClip(clip)
+                }
+            }
+        default:
+            super.keyDown(with: event)
+        }
+    }
+
+    override func keyUp(with event: NSEvent) {
+        if event.keyCode == 49 && isSpaceDown {
+            isSpaceDown = false
+            NotificationCenter.default.post(name: .stashToggleQuickLook, object: nil)
+        }
+        super.keyUp(with: event)
+    }
+
     override func resignKey() {
         super.resignKey()
         if PreferencesStore.shared.autoHideOnFocusLoss {
@@ -111,4 +194,5 @@ extension Notification.Name {
     static let stashEditClip = Notification.Name("stashEditClip")
     static let stashOpenPreferences = Notification.Name("stashOpenPreferences")
     static let stashFocusSearch = Notification.Name("stashFocusSearch")
+    static let stashHotkeyChanged = Notification.Name("stashHotkeyChanged")
 }

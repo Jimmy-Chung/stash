@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SidebarView: View {
     @ObservedObject var store: ClipboardStore
@@ -6,6 +7,7 @@ struct SidebarView: View {
     @State private var newPinboardName = ""
     @State private var editingPinboard: Pinboard?
     @State private var editingName = ""
+    @FocusState private var isEditingFocused: Bool
 
     private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
 
@@ -106,6 +108,7 @@ struct SidebarView: View {
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .foregroundColor(.white)
+                    .focused($isEditingFocused)
             } else {
                 Text(board.name)
                     .font(.system(size: 12))
@@ -131,19 +134,24 @@ struct SidebarView: View {
                 store.selectedIndex = 0
             }
         }
-        .dropDestination(for: String.self) { items, _ in
-            if let idString = items.first,
-               let id = UUID(uuidString: idString),
-               let clip = store.clips.first(where: { $0.id == id }) {
-                store.moveClipToPinboard(clip, pinboardId: board.id)
-                return true
+        .onDrop(of: [.text], isTargeted: nil) { providers in
+            guard let provider = providers.first else { return false }
+            provider.loadItem(forTypeIdentifier: "public.text", options: nil) { data, _ in
+                guard let data = data as? Data,
+                      let idString = String(data: data, encoding: .utf8),
+                      let id = UUID(uuidString: idString),
+                      let clip = store.clips.first(where: { $0.id == id }) else { return }
+                DispatchQueue.main.async {
+                    store.moveClipToPinboard(clip, pinboardId: board.id)
+                }
             }
-            return false
+            return true
         }
         .contextMenu {
             Button("Rename") {
                 editingPinboard = board
                 editingName = board.name
+                isEditingFocused = true
             }
             Divider()
             Button("Delete", role: .destructive) {

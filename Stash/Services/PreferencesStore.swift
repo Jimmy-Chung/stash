@@ -71,17 +71,17 @@ final class PreferencesStore: ObservableObject {
 
         var cardWidth: CGFloat {
             switch self {
-            case .compact: return 220
-            case .normal: return 248
-            case .cozy: return 268
+            case .compact: return 240
+            case .normal: return 268
+            case .cozy: return 290
             }
         }
 
         var cardHeight: CGFloat {
             switch self {
-            case .compact: return 288
-            case .normal: return 320
-            case .cozy: return 336
+            case .compact: return 240
+            case .normal: return 268
+            case .cozy: return 290
             }
         }
 

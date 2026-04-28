@@ -216,6 +216,15 @@ final class ClipboardStore: ObservableObject {
         selectedIndex = 0
     }
 
+    // MARK: - Data Retention
+
+    func cleanupExpiredClips(retentionDays: Int = 90) {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date()) ?? Date()
+        let expired = clips.filter { $0.createdAt < cutoff && $0.pinboardId == nil }
+        guard !expired.isEmpty else { return }
+        deleteClips(expired)
+    }
+
     // MARK: - Private
 
     private func fetchLinkMetadata(for urlString: String, clipId: UUID) {

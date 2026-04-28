@@ -48,7 +48,9 @@ struct CardView: View {
                 shortcutOverlay
             }
         }
-        .draggable(clip.id.uuidString)
+        .onDrag {
+            NSItemProvider(object: clip.id.uuidString as NSString)
+        }
         .onHover { hovering in
             isHovered = hovering
         }

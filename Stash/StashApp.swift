@@ -13,20 +13,31 @@ struct StashApp: App {
             get: { prefs.showMenuBarIcon },
             set: { prefs.showMenuBarIcon = $0 }
         )) {
-            Button("Preferences...") {
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-            }
-            .keyboardShortcut(",", modifiers: .command)
-            Divider()
-            Button("Quit Stash") {
-                NSApplication.shared.terminate(nil)
-            }
-            .keyboardShortcut("q", modifiers: .command)
+            MenuBarContent()
         }
 
-        Settings {
+        Window("Stash Preferences", id: "preferences") {
             PreferencesRootView()
         }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .defaultSize(width: 720, height: 540)
+    }
+}
+
+struct MenuBarContent: View {
+    @Environment(\.openWindow) var openWindow
+
+    var body: some View {
+        Button("Preferences...") {
+            openWindow(id: "preferences")
+        }
+        .keyboardShortcut(",", modifiers: .command)
+        Divider()
+        Button("Quit Stash") {
+            NSApplication.shared.terminate(nil)
+        }
+        .keyboardShortcut("q", modifiers: .command)
     }
 }
 
@@ -64,19 +75,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         clipboardWatcher.start()
 
-        let hotKey = HotKey(key: .v, modifiers: [.command, .shift])
-        hotKey.keyDownHandler = { [weak self] in
-            DispatchQueue.main.async {
-                self?.togglePanel()
-            }
+        setupGlobalHotKey()
+
+        NotificationCenter.default.addObserver(
+            forName: .stashHotkeyChanged,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.setupGlobalHotKey()
         }
-        globalHotKey = hotKey
 
         NotificationCenter.default.addObserver(
             forName: .stashOpenPreferences,
             object: nil, queue: .main
         ) { _ in
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            if let window = NSApp.windows.first(where: { $0.title == "Stash Preferences" }) {
+                window.makeKeyAndOrderFront(nil)
+            } else {
+                NSApp.sendAction(Selector(("openWindow:")), to: nil, from: nil)
+            }
+            NSApp.activate(ignoringOtherApps: true)
+        }
+
+        // 90-day data retention cleanup
+        store.cleanupExpiredClips()
+        Timer.scheduledTimer(withTimeInterval: 86400, repeats: true) { [weak self] _ in
+            self?.store.cleanupExpiredClips()
+        }
+
+        // Accessibility startup guide (async to avoid blocking launch)
+        DispatchQueue.main.async {
+            if !AccessibilityChecker.isTrusted {
+                let alert = NSAlert()
+                alert.messageText = "Stash Needs Accessibility Access"
+                alert.informativeText = "Stash requires Accessibility permission to simulate paste (⌘V).\n\nClick OK to open System Settings, then enable Stash under Privacy > Accessibility."
+                alert.addButton(withTitle: "Open System Settings")
+                alert.addButton(withTitle: "Later")
+                alert.alertStyle = .warning
+                if alert.runModal() == .alertFirstButtonReturn {
+                    AccessibilityChecker.openSystemSettings()
+                }
+            }
         }
     }
 
@@ -100,6 +138,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         clip.writeToPasteboard(plainTextOnly: true)
         panel.orderOut(nil)
         PasteSimulator.simulatePaste()
+    }
+
+    private func setupGlobalHotKey() {
+        let mods = NSEvent.ModifierFlags(rawValue: UInt(prefs.globalHotKeyModifiers))
+
+        // Default fallback: ⌘⇧V
+        let key: HotKey
+        if prefs.globalHotKeyCode == 0 && prefs.globalHotKeyModifiers == 0 {
+            key = HotKey(key: .v, modifiers: [.command, .shift])
+        } else if let hk = Key(carbonKeyCode: prefs.globalHotKeyCode) {
+            key = HotKey(key: hk, modifiers: mods)
+        } else {
+            key = HotKey(key: .v, modifiers: [.command, .shift])
+        }
+        key.keyDownHandler = { [weak self] in
+            DispatchQueue.main.async {
+                self?.togglePanel()
+            }
+        }
+        globalHotKey = key
     }
 
     private func enforceHistoryLimit() {

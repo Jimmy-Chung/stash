@@ -7,7 +7,6 @@ struct GalleryView: View {
     var onPlainPaste: (() -> Void)?
 
     @State private var isQuickLooking = false
-    @State private var spaceMonitor: Any?
     @State private var editingClip: Clip?
     @State private var showDeleteConfirmation = false
     @State private var clipToDelete: Clip?
@@ -36,7 +35,7 @@ struct GalleryView: View {
         .background(
             ZStack {
                 wallpaperGradient
-                Color(red: 28/255, green: 28/255, blue: 32/255).opacity(0.55)
+                Color(red: 28/255, green: 28/255, blue: 32/255).opacity(0.35)
                     .background(.ultraThinMaterial)
             }
         )
@@ -94,30 +93,6 @@ struct GalleryView: View {
         .onReceive(NotificationCenter.default.publisher(for: .stashEditClip)) { _ in
             if let clip = store.clip(at: store.selectedIndex) {
                 editingClip = clip
-            }
-        }
-        .modifier(GalleryKeyHandlers(
-            store: store,
-            onPaste: onPaste,
-            onClose: onClose,
-            onPlainPaste: onPlainPaste,
-            isQuickLooking: $isQuickLooking,
-            editingClip: $editingClip,
-            clipToDelete: $clipToDelete,
-            showDeleteConfirmation: $showDeleteConfirmation
-        ))
-        .onAppear {
-            spaceMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyUp) { event in
-                if event.keyCode == 49 && isQuickLooking {
-                    isQuickLooking = false
-                }
-                return event
-            }
-        }
-        .onDisappear {
-            if let monitor = spaceMonitor {
-                NSEvent.removeMonitor(monitor)
-                spaceMonitor = nil
             }
         }
     }
@@ -319,7 +294,7 @@ struct GalleryView: View {
                 }
                 .onChange(of: store.selectedIndex) { _ in
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        proxy.scrollTo(store.selectedIndex, anchor: .center)
+                        proxy.scrollTo(store.selectedIndex, anchor: .leading)
                     }
                 }
             }
@@ -477,7 +452,7 @@ struct GalleryView: View {
                         startRadius: 0, endRadius: 280
                     )
                 }
-                .opacity(0.25)
+                .opacity(0.5)
             case 2: // Mono
                 ZStack {
                     RadialGradient(
@@ -491,7 +466,7 @@ struct GalleryView: View {
                         startRadius: 0, endRadius: 260
                     )
                 }
-                .opacity(0.25)
+                .opacity(0.4)
             default: // Warm
                 ZStack {
                     RadialGradient(
@@ -510,7 +485,7 @@ struct GalleryView: View {
                         startRadius: 0, endRadius: 280
                     )
                 }
-                .opacity(0.2)
+                .opacity(0.45)
             }
         }
         .allowsHitTesting(false)
@@ -532,104 +507,6 @@ struct GalleryView: View {
             Text(label)
                 .font(.system(size: 11.5))
                 .foregroundColor(.white.opacity(0.55))
-        }
-    }
-}
-
-// MARK: - Keyboard Handlers
-
-private struct GalleryKeyHandlers: ViewModifier {
-    @ObservedObject var store: ClipboardStore
-    let onPaste: () -> Void
-    let onClose: () -> Void
-    let onPlainPaste: (() -> Void)?
-    @Binding var isQuickLooking: Bool
-    @Binding var editingClip: Clip?
-    @Binding var clipToDelete: Clip?
-    @Binding var showDeleteConfirmation: Bool
-
-    func body(content: Content) -> some View {
-        commandKeyHandlers(
-            navigationKeyHandlers(content)
-        )
-    }
-
-    private func navigationKeyHandlers<Content: View>(_ content: Content) -> some View {
-        content
-            .onKeyPress(.leftArrow) {
-                store.selectPrevious(); return .handled
-            }
-            .onKeyPress(.rightArrow) {
-                store.selectNext(); return .handled
-            }
-            .onKeyPress(.escape) {
-                onClose(); return .handled
-            }
-            .onKeyPress(.space) {
-                isQuickLooking = true; return .handled
-            }
-            .onKeyPress(.delete) {
-                if let clip = store.clip(at: store.selectedIndex) {
-                    if clip.isPinned {
-                        clipToDelete = clip
-                        showDeleteConfirmation = true
-                    } else {
-                        store.deleteClip(clip)
-                    }
-                }
-                return .handled
-            }
-    }
-
-    private func commandKeyHandlers<Content: View>(_ content: Content) -> some View {
-        content.onKeyPress { press in
-            let mods = press.modifiers
-            let key = String(press.key.character)
-
-            // Shift+Return → plain paste
-            if press.key == .return && mods.contains(.shift) && !mods.contains(.command) {
-                onPlainPaste?()
-                return .handled
-            }
-            // Return → paste
-            if press.key == .return && !mods.contains(.command) {
-                onPaste()
-                return .handled
-            }
-
-            guard mods.contains(.command) else { return .ignored }
-
-            if let digit = Int(key), (1...9).contains(digit) {
-                if let clip = store.clip(at: digit - 1) {
-                    clip.writeToPasteboard()
-                    onClose()
-                    PasteSimulator.simulatePaste()
-                }
-                return .handled
-            }
-            switch key {
-            case "p":
-                if let clip = store.clip(at: store.selectedIndex) { store.togglePin(clip) }
-                return .handled
-            case "e":
-                if let clip = store.clip(at: store.selectedIndex) { editingClip = clip }
-                return .handled
-            case "f":
-                store.searchText = ""
-                NotificationCenter.default.post(name: .stashFocusSearch, object: nil)
-                return .handled
-            case "[":
-                store.switchToPreviousPinboard()
-                return .handled
-            case "]":
-                store.switchToNextPinboard()
-                return .handled
-            case "v" where mods.contains(.shift):
-                onPlainPaste?()
-                return .handled
-            default:
-                return .ignored
-            }
         }
     }
 }
