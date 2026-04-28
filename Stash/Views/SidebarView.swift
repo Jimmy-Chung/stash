@@ -107,44 +107,46 @@ struct SidebarView: View {
         let isActive = store.activePinboardId == board.id
         let clipCount = store.clips.filter { $0.pinboardId == board.id }.count
 
-        HStack(spacing: 8) {
-            Image(systemName: board.icon)
-                .font(.system(size: 12))
-                .foregroundColor(isActive ? accentColor : .white.opacity(0.5))
-
-            if editingPinboard?.id == board.id {
-                TextField(board.name, text: $editingName, onCommit: { renamePinboard(board) })
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 12))
-                    .foregroundColor(.white)
-                    .focused($isEditingFocused)
-            } else {
-                Text(board.name)
-                    .font(.system(size: 12))
-                    .foregroundColor(isActive ? .white : .white.opacity(0.7))
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            if isActive {
-                Text("\(clipCount)")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundColor(accentColor.opacity(0.7))
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(isActive ? accentColor.opacity(0.12) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .onTapGesture {
+        Button(action: {
             if editingPinboard?.id != board.id {
                 DispatchQueue.main.async {
                     store.activePinboardId = board.id
                     store.selectedIndex = 0
                 }
             }
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: board.icon)
+                    .font(.system(size: 12))
+                    .foregroundColor(isActive ? accentColor : .white.opacity(0.5))
+
+                if editingPinboard?.id == board.id {
+                    TextField(board.name, text: $editingName, onCommit: { renamePinboard(board) })
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12))
+                        .foregroundColor(.white)
+                        .focused($isEditingFocused)
+                } else {
+                    Text(board.name)
+                        .font(.system(size: 12))
+                        .foregroundColor(isActive ? .white : .white.opacity(0.7))
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                if isActive {
+                    Text("\(clipCount)")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(accentColor.opacity(0.7))
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(isActive ? accentColor.opacity(0.12) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
+        .buttonStyle(.plain)
         .onDrop(of: [.text], isTargeted: nil) { providers in
             guard let provider = providers.first else { return false }
             provider.loadItem(forTypeIdentifier: "public.text", options: nil) { data, _ in
