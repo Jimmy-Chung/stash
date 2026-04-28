@@ -46,8 +46,11 @@ final class ClipboardStore: ObservableObject {
 
         searchService.onSearch = { [weak self] query in
             DispatchQueue.main.async {
-                self?.searchText = query
-                self?.selectedIndex = 0
+                // Avoid triggering @Published when value hasn't changed (prevents SwiftUI update loop)
+                if self?.searchText != query {
+                    self?.searchText = query
+                    self?.selectedIndex = 0
+                }
             }
         }
     }

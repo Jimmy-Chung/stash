@@ -22,8 +22,10 @@ struct SidebarView: View {
                 isActive: store.activePinboardId == nil,
                 accentColor: accentColor
             ) {
-                store.activePinboardId = nil
-                store.selectedIndex = 0
+                DispatchQueue.main.async {
+                    store.activePinboardId = nil
+                    store.selectedIndex = 0
+                }
             }
 
             Divider()
@@ -137,8 +139,10 @@ struct SidebarView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .onTapGesture {
             if editingPinboard?.id != board.id {
-                store.activePinboardId = board.id
-                store.selectedIndex = 0
+                DispatchQueue.main.async {
+                    store.activePinboardId = board.id
+                    store.selectedIndex = 0
+                }
             }
         }
         .onDrop(of: [.text], isTargeted: nil) { providers in
@@ -164,7 +168,9 @@ struct SidebarView: View {
             }
             Divider()
             Button("Delete", role: .destructive) {
-                store.deletePinboard(board)
+                DispatchQueue.main.async {
+                    store.deletePinboard(board)
+                }
             }
         }
     }

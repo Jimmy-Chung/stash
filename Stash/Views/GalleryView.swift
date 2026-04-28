@@ -81,13 +81,17 @@ struct GalleryView: View {
                     clipToDelete = clip
                     showDeleteConfirmation = true
                 } else {
-                    store.deleteClip(clip)
+                    DispatchQueue.main.async {
+                        store.deleteClip(clip)
+                    }
                 }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .stashTogglePin)) { _ in
             if let clip = store.clip(at: store.selectedIndex) {
-                store.togglePin(clip)
+                DispatchQueue.main.async {
+                    store.togglePin(clip)
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .stashEditClip)) { _ in
@@ -230,9 +234,11 @@ struct GalleryView: View {
     private func filterPill(label: String, type: ClipType?) -> some View {
         let isActive = store.filterType == type
         return Button(action: {
-            withAnimation(.easeInOut(duration: 0.14)) {
-                store.filterType = type
-                store.selectedIndex = 0
+            DispatchQueue.main.async {
+                withAnimation(.easeInOut(duration: 0.14)) {
+                    store.filterType = type
+                    store.selectedIndex = 0
+                }
             }
         }) {
             Text(label)
@@ -273,7 +279,9 @@ struct GalleryView: View {
                                     )
                                     .id(globalIdx)
                                     .onTapGesture {
-                                        store.selectedIndex = globalIdx
+                                        DispatchQueue.main.async {
+                                            store.selectedIndex = globalIdx
+                                        }
                                     }
                                     .contextMenu {
                                         ClipContextMenu(
