@@ -6,6 +6,9 @@ struct ClipContextMenu: View {
     var onPaste: () -> Void = {}
     var onEdit: (() -> Void)? = nil
 
+    @State private var isRenaming = false
+    @State private var newName = ""
+
     var body: some View {
         Group {
             Button("Paste") { onPaste() }
@@ -40,15 +43,24 @@ struct ClipContextMenu: View {
                 }
             }
 
+            if clip.type == .image || clip.type == .file {
+                Button("Rename...") {
+                    newName = clip.fileName ?? clip.displayTitle
+                    isRenaming = true
+                }
+            }
+
             Divider()
 
             Button("Delete", role: .destructive) {
-                if clip.isPinned {
-                    // Deletion of pinned items requires confirmation handled by caller
-                    store.deleteClip(clip)
-                } else {
-                    store.deleteClip(clip)
-                }
+                store.deleteClip(clip)
+            }
+        }
+        .alert("Rename", isPresented: $isRenaming) {
+            TextField("Name", text: $newName)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                clip.fileName = newName
             }
         }
     }

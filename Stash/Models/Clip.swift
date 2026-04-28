@@ -1,16 +1,17 @@
 import Foundation
 import AppKit
+import SwiftData
 
-struct Clip: Codable, Identifiable {
-    let id: UUID
-    let type: ClipType
+@Model
+final class Clip {
+    @Attribute(.unique) var id: UUID
+    var typeRaw: String
     var textContent: String?
     var imagePath: String?
-    let sourceApp: String?
+    var sourceApp: String?
     var contentHash: String
-    let createdAt: Date
+    var createdAt: Date
 
-    // v0.2 metadata
     var title: String?
     var faviconPath: String?
     var imageWidth: Int?
@@ -21,9 +22,13 @@ struct Clip: Codable, Identifiable {
     var codeLanguage: String?
     var fileName: String?
 
-    // v0.3 organization
     var pinboardId: UUID?
     var pinnedAt: Date?
+
+    var type: ClipType {
+        get { ClipType(rawValue: typeRaw) ?? .text }
+        set { typeRaw = newValue.rawValue }
+    }
 
     var isPinned: Bool { pinnedAt != nil }
 
@@ -46,7 +51,7 @@ struct Clip: Codable, Identifiable {
         pinnedAt: Date? = nil
     ) {
         self.id = UUID()
-        self.type = type
+        self.typeRaw = type.rawValue
         self.textContent = textContent
         self.imagePath = imagePath
         self.sourceApp = sourceApp

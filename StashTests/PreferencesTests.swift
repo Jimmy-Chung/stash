@@ -4,6 +4,10 @@ import XCTest
 final class PreferencesTests: XCTestCase {
 
     func testDefaultValues() {
+        UserDefaults.standard.removeObject(forKey: "historyLimit")
+        UserDefaults.standard.removeObject(forKey: "blurAmount")
+        UserDefaults.standard.removeObject(forKey: "showMenuBarIcon")
+        UserDefaults.standard.removeObject(forKey: "autoHideOnFocusLoss")
         let prefs = PreferencesStore()
         XCTAssertEqual(prefs.historyLimit, 500)
         XCTAssertEqual(prefs.blurAmount, 50.0)
@@ -12,13 +16,13 @@ final class PreferencesTests: XCTestCase {
     }
 
     func testCardDensitySizes() {
-        XCTAssertEqual(PreferencesStore.CardDensity.compact.cardWidth, 200)
+        XCTAssertEqual(PreferencesStore.CardDensity.compact.cardWidth, 220)
         XCTAssertEqual(PreferencesStore.CardDensity.normal.cardWidth, 248)
-        XCTAssertEqual(PreferencesStore.CardDensity.cozy.cardWidth, 300)
+        XCTAssertEqual(PreferencesStore.CardDensity.cozy.cardWidth, 268)
 
-        XCTAssertEqual(PreferencesStore.CardDensity.compact.cardHeight, 260)
+        XCTAssertEqual(PreferencesStore.CardDensity.compact.cardHeight, 288)
         XCTAssertEqual(PreferencesStore.CardDensity.normal.cardHeight, 320)
-        XCTAssertEqual(PreferencesStore.CardDensity.cozy.cardHeight, 400)
+        XCTAssertEqual(PreferencesStore.CardDensity.cozy.cardHeight, 336)
     }
 
     func testAppearanceModes() {

@@ -1,40 +1,60 @@
+import SwiftUI
 import AppKit
-import Combine
+import HotKey
+import SwiftData
+
+@main
+struct StashApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @ObservedObject private var prefs = PreferencesStore.shared
+
+    var body: some Scene {
+        MenuBarExtra("Stash", systemImage: "doc.on.clipboard", isInserted: Binding(
+            get: { prefs.showMenuBarIcon },
+            set: { prefs.showMenuBarIcon = $0 }
+        )) {
+            Button("Preferences...") {
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            }
+            .keyboardShortcut(",", modifiers: .command)
+            Divider()
+            Button("Quit Stash") {
+                NSApplication.shared.terminate(nil)
+            }
+            .keyboardShortcut("q", modifiers: .command)
+        }
+
+        Settings {
+            PreferencesRootView()
+        }
+    }
+}
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var statusItem: NSStatusItem!
     var store: ClipboardStore!
     var panel: GalleryPanel!
     var clipboardWatcher: ClipboardWatcher!
-    var globalHotKey: GlobalHotKey?
-    var preferencesWindow: PreferencesWindow?
+    var globalHotKey: HotKey?
     let prefs = PreferencesStore.shared
+    var modelContainer: ModelContainer!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Menu bar status item
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        updateStatusBarIcon()
-        let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Preferences...", action: #selector(openPreferences), keyEquivalent: ","))
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Stash", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-        statusItem.menu = menu
-
-        // Store + Panel
-        store = ClipboardStore()
+        do {
+            modelContainer = try ModelContainer(for: Clip.self, Pinboard.self)
+        } catch {
+            fatalError("Failed to create ModelContainer: \(error)")
+        }
+        let context = modelContainer.mainContext
+        store = ClipboardStore(modelContext: context)
         panel = GalleryPanel(store: store)
 
         panel.onPaste = { [weak self] in
             self?.pasteSelected()
         }
-        panel.onQuickPaste = { [weak self] index in
-            self?.quickPaste(at: index)
-        }
         panel.onPlainPaste = { [weak self] in
             self?.pastePlainSelected()
         }
 
-        // Clipboard watcher
         clipboardWatcher = ClipboardWatcher()
         clipboardWatcher.onCopy = { [weak self] in
             DispatchQueue.main.async {
@@ -44,35 +64,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         clipboardWatcher.start()
 
-        // Global hotkey
-        globalHotKey = GlobalHotKey(keyboardShortcut: .commandShiftV) { [weak self] in
+        let hotKey = HotKey(key: .v, modifiers: [.command, .shift])
+        hotKey.keyDownHandler = { [weak self] in
             DispatchQueue.main.async {
                 self?.togglePanel()
             }
         }
+        globalHotKey = hotKey
 
-        // Preferences observer for menu bar icon visibility
-        prefs.$showMenuBarIcon
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] show in
-                self?.statusItem.isVisible = show
-            }
-            .store(in: &cancellables)
-    }
-
-    private var cancellables: [AnyCancellable] = []
-
-    private func updateStatusBarIcon() {
-        if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "Stash")
+        NotificationCenter.default.addObserver(
+            forName: .stashOpenPreferences,
+            object: nil, queue: .main
+        ) { _ in
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         }
-    }
-
-    @objc private func openPreferences() {
-        if preferencesWindow == nil {
-            preferencesWindow = PreferencesWindow()
-        }
-        preferencesWindow?.showWindow()
     }
 
     @objc private func togglePanel() {
@@ -90,13 +95,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         PasteSimulator.simulatePaste()
     }
 
-    private func quickPaste(at index: Int) {
-        guard let clip = store.clip(at: index) else { return }
-        clip.writeToPasteboard()
-        panel.orderOut(nil)
-        PasteSimulator.simulatePaste()
-    }
-
     private func pastePlainSelected() {
         guard let clip = store.clip(at: store.selectedIndex) else { return }
         clip.writeToPasteboard(plainTextOnly: true)
@@ -108,27 +106,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let limit = prefs.historyLimit
         guard limit > 0, store.clips.count > limit else { return }
 
-        // Separate pinned and unpinned
-        let pinned = store.clips.filter { $0.isPinned }
-        var unpinned = store.clips.filter { !$0.isPinned }
+        let unpinned = store.clips.filter { !$0.isPinned }
 
         let excess = store.clips.count - limit
         guard excess > 0 else { return }
 
-        // Remove oldest unpinned first
         let toRemove = min(excess, unpinned.count)
         let removedItems = Array(unpinned.suffix(toRemove))
-        for item in removedItems {
-            if let path = item.imagePath {
-                BlobStore.shared.delete(path)
-            }
-        }
-
-        var remaining = store.clips.filter { clip in
-            !removedItems.contains(where: { $0.id == clip.id })
-        }
-        // Keep newest first order
-        remaining.sort { $0.createdAt > $1.createdAt }
-        store.clips = remaining
+        store.deleteClips(removedItems)
     }
 }

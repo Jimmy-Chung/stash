@@ -86,7 +86,7 @@ struct SidebarView: View {
 
             Spacer()
         }
-        .frame(width: 180)
+        .frame(width: 184)
         .padding(.top, 12)
         .background(Color.white.opacity(0.03))
     }
@@ -130,6 +130,15 @@ struct SidebarView: View {
                 store.activePinboardId = board.id
                 store.selectedIndex = 0
             }
+        }
+        .dropDestination(for: String.self) { items, _ in
+            if let idString = items.first,
+               let id = UUID(uuidString: idString),
+               let clip = store.clips.first(where: { $0.id == id }) {
+                store.moveClipToPinboard(clip, pinboardId: board.id)
+                return true
+            }
+            return false
         }
         .contextMenu {
             Button("Rename") {

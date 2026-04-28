@@ -1,7 +1,9 @@
 import Foundation
+import SwiftData
 
-struct Pinboard: Codable, Identifiable, Equatable {
-    let id: UUID
+@Model
+final class Pinboard {
+    @Attribute(.unique) var id: UUID
     var name: String
     var icon: String
     var accent: String

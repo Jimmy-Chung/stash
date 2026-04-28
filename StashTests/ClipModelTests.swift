@@ -1,43 +1,59 @@
 import XCTest
+import SwiftData
 @testable import Stash
 
+@MainActor
 final class ClipModelTests: XCTestCase {
 
-    // U-12: Clip serialization → deserialization preserves data
-    func testClipCodingRoundTrip() throws {
+    private var modelContainer: ModelContainer!
+    private var context: ModelContext!
+
+    override func setUp() {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        modelContainer = try! ModelContainer(for: Clip.self, Pinboard.self, configurations: config)
+        context = modelContainer.mainContext
+    }
+
+    // U-12: Clip creation preserves data
+    func testClipCreationPreservesData() {
         let clip = Clip(type: .text, textContent: "Test persistence", contentHash: "hash123")
-        let encoder = JSONEncoder()
-        let data = try encoder.encode(clip)
+        context.insert(clip)
 
-        let decoder = JSONDecoder()
-        let decoded = try decoder.decode(Clip.self, from: data)
-
-        XCTAssertEqual(decoded.id, clip.id)
-        XCTAssertEqual(decoded.textContent, "Test persistence")
-        XCTAssertEqual(decoded.type, .text)
-        XCTAssertEqual(decoded.contentHash, "hash123")
+        XCTAssertEqual(clip.textContent, "Test persistence")
+        XCTAssertEqual(clip.type, .text)
+        XCTAssertEqual(clip.contentHash, "hash123")
+        XCTAssertNotNil(clip.id)
+        XCTAssertNotNil(clip.createdAt)
     }
 
     func testClipStorePersistence() throws {
-        let tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("StashTest-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-
-        let store = ClipboardStore()
-        // We can't inject a custom storage URL easily, but we can test the coding round-trip
+        let store = ClipboardStore(modelContext: context)
         let clip = Clip(type: .link, textContent: "https://example.com", contentHash: "abc")
-        let encoder = JSONEncoder()
-        let data = try encoder.encode([clip])
-        let storageURL = tempDir.appendingPathComponent("clips.json")
-        try data.write(to: storageURL)
+        store.clips.append(clip)
+        context.insert(clip)
 
-        let readBack = try Data(contentsOf: storageURL)
-        let decoder = JSONDecoder()
-        let decoded = try decoder.decode([Clip].self, from: readBack)
-        XCTAssertEqual(decoded.count, 1)
-        XCTAssertEqual(decoded.first?.textContent, "https://example.com")
-        XCTAssertEqual(decoded.first?.type, .link)
+        try context.save()
 
-        try FileManager.default.removeItem(at: tempDir)
+        let descriptor = FetchDescriptor<Clip>()
+        let fetched = try context.fetch(descriptor)
+        XCTAssertEqual(fetched.count, 1)
+        XCTAssertEqual(fetched.first?.textContent, "https://example.com")
+        XCTAssertEqual(fetched.first?.type, .link)
+    }
+
+    func testDisplayTitleForLink() {
+        let clip = Clip(type: .link, textContent: "https://example.com/path", contentHash: "h1")
+        XCTAssertEqual(clip.displayTitle, "example.com")
+    }
+
+    func testDisplayTitleForCode() {
+        let clip = Clip(type: .code, textContent: "print('hi')", contentHash: "h2", codeLanguage: "Python")
+        XCTAssertEqual(clip.displayTitle, "Python")
+    }
+
+    func testDisplayTitleTruncatesLongText() {
+        let longText = String(repeating: "a", count: 100)
+        let clip = Clip(type: .text, textContent: longText, contentHash: "h3")
+        XCTAssertEqual(clip.displayTitle.count, 60)
     }
 }

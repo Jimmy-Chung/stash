@@ -1,20 +1,19 @@
 import XCTest
+import SwiftData
 @testable import Stash
 
+@MainActor
 final class PinboardTests: XCTestCase {
 
-    private var tempDir: URL!
+    private var modelContainer: ModelContainer!
+    private var context: ModelContext!
     private var store: ClipboardStore!
 
     override func setUp() {
-        tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("StashTest-\(UUID().uuidString)")
-        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        store = ClipboardStore(directory: tempDir)
-    }
-
-    override func tearDown() {
-        try? FileManager.default.removeItem(at: tempDir)
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        modelContainer = try! ModelContainer(for: Clip.self, Pinboard.self, configurations: config)
+        context = modelContainer.mainContext
+        store = ClipboardStore(modelContext: context)
     }
 
     func testCreatePinboard() {
@@ -27,9 +26,10 @@ final class PinboardTests: XCTestCase {
         store.createPinboard(name: "TestBoard")
         let boardId = store.pinboards.first!.id
 
-        var clip = Clip(type: .text, textContent: "hello", contentHash: "h1")
+        let clip = Clip(type: .text, textContent: "hello", contentHash: "h1")
         clip.pinboardId = boardId
         store.clips.append(clip)
+        context.insert(clip)
 
         store.deletePinboard(store.pinboards.first!)
         XCTAssertEqual(store.clips.count, 1)
@@ -39,6 +39,7 @@ final class PinboardTests: XCTestCase {
     func testTogglePin() {
         let clip = Clip(type: .text, textContent: "pin me", contentHash: "h1")
         store.clips.append(clip)
+        context.insert(clip)
 
         XCTAssertNil(store.clips.first?.pinnedAt)
         store.togglePin(clip)
@@ -49,8 +50,8 @@ final class PinboardTests: XCTestCase {
     }
 
     func testPinnedSortFirst() {
-        var clip1 = Clip(type: .text, textContent: "unpinned", contentHash: "h1")
-        var clip2 = Clip(type: .text, textContent: "pinned", contentHash: "h2")
+        let clip1 = Clip(type: .text, textContent: "unpinned", contentHash: "h1")
+        let clip2 = Clip(type: .text, textContent: "pinned", contentHash: "h2")
         clip2.pinnedAt = Date()
         store.clips = [clip1, clip2]
 

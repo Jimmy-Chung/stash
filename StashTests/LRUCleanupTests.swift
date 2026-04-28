@@ -1,20 +1,19 @@
 import XCTest
+import SwiftData
 @testable import Stash
 
+@MainActor
 final class LRUCleanupTests: XCTestCase {
 
-    private var tempDir: URL!
+    private var modelContainer: ModelContainer!
+    private var context: ModelContext!
     private var store: ClipboardStore!
 
     override func setUp() {
-        tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("StashTest-\(UUID().uuidString)")
-        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        store = ClipboardStore(directory: tempDir)
-    }
-
-    override func tearDown() {
-        try? FileManager.default.removeItem(at: tempDir)
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        modelContainer = try! ModelContainer(for: Clip.self, Pinboard.self, configurations: config)
+        context = modelContainer.mainContext
+        store = ClipboardStore(modelContext: context)
     }
 
     // U-34: limit=5, insert 6 unpinned → first deleted
@@ -26,17 +25,17 @@ final class LRUCleanupTests: XCTestCase {
         defer { prefs.historyLimit = originalLimit }
 
         for i in 0..<6 {
-            var clip = Clip(type: .text, textContent: "clip \(i)", contentHash: "h\(i)")
+            let clip = Clip(type: .text, textContent: "clip \(i)", contentHash: "h\(i)")
             store.clips.append(clip)
+            context.insert(clip)
         }
 
-        // Simulate the cleanup logic
         let limit = 5
         let excess = store.clips.count - limit
         if excess > 0 {
             let unpinned = store.clips.filter { !$0.isPinned }
             let toRemove = min(excess, unpinned.count)
-            let removedItems = Array(unpinned.suffix(toRemove))
+            let removedItems = Array(unpinned.prefix(toRemove))
             store.clips.removeAll { clip in
                 removedItems.contains(where: { $0.id == clip.id })
             }
@@ -50,7 +49,7 @@ final class LRUCleanupTests: XCTestCase {
     func testLRUPreservesPinned() {
         var clips: [Clip] = []
         for i in 0..<3 {
-            var clip = Clip(type: .text, textContent: "pinned \(i)", contentHash: "p\(i)")
+            let clip = Clip(type: .text, textContent: "pinned \(i)", contentHash: "p\(i)")
             clip.pinnedAt = Date()
             clips.append(clip)
         }

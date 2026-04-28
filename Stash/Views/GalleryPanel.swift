@@ -6,7 +6,6 @@ final class GalleryPanel: NSPanel {
     private var galleryView: GalleryView?
     var onPaste: (() -> Void)?
     var onClose: (() -> Void)?
-    var onQuickPaste: ((Int) -> Void)?
     var onPlainPaste: (() -> Void)?
 
     init(store: ClipboardStore) {
@@ -25,7 +24,7 @@ final class GalleryPanel: NSPanel {
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = false
         self.backgroundColor = .clear
-        self.hasShadow = true
+        self.hasShadow = false
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
         let gallery = GalleryView(
@@ -40,6 +39,13 @@ final class GalleryPanel: NSPanel {
         hostingView.frame = self.contentView?.bounds ?? .zero
         hostingView.autoresizingMask = [.width, .height]
         self.contentView?.addSubview(hostingView)
+
+        NotificationCenter.default.addObserver(
+            forName: .stashFocusSearch,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.focusSearchField()
+        }
     }
 
     override var canBecomeKey: Bool { true }
@@ -64,57 +70,24 @@ final class GalleryPanel: NSPanel {
         makeKeyAndOrderFront(nil)
     }
 
-    override func keyDown(with event: NSEvent) {
-        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+    private func focusSearchField() {
+        guard let contentView = contentView else { return }
+        let textField = findTextField(in: contentView)
+        if let field = textField {
+            makeFirstResponder(field)
+        }
+    }
 
-        switch event.keyCode {
-        case 123: // left arrow
-            store.selectPrevious()
-        case 124: // right arrow
-            store.selectNext()
-        case 36: // return
-            if modifiers == .shift {
-                handlePlainPaste()
-            } else {
-                handlePaste()
+    private func findTextField(in view: NSView) -> NSTextField? {
+        for child in view.subviews {
+            if let tf = child as? NSTextField, tf.isEditable {
+                return tf
             }
-        case 53: // escape
-            handleClose()
-        case 49: // space
-            NotificationCenter.default.post(name: .stashToggleQuickLook, object: nil)
-        case 51: // delete (backspace)
-            handleDelete()
-        default:
-            // ⌘1-9 quick paste
-            if modifiers == .command,
-               let char = event.charactersIgnoringModifiers,
-               let digit = Int(char), (1...9).contains(digit) {
-                onQuickPaste?(digit - 1)
-            }
-            // ⌘P toggle pin
-            else if modifiers == .command, event.charactersIgnoringModifiers == "p" {
-                NotificationCenter.default.post(name: .stashTogglePin, object: nil)
-            }
-            // ⌘E edit
-            else if modifiers == .command, event.charactersIgnoringModifiers == "e" {
-                NotificationCenter.default.post(name: .stashEditClip, object: nil)
-            }
-            // ⌘] next pinboard
-            else if modifiers == .command, event.keyCode == 30 { // ]
-                store.switchToNextPinboard()
-            }
-            // ⌘[ previous pinboard
-            else if modifiers == .command, event.keyCode == 33 { // [
-                store.switchToPreviousPinboard()
-            }
-            // ⇧⌘V plain paste
-            else if modifiers == [.command, .shift], event.keyCode == 9 {
-                handlePlainPaste()
-            }
-            else {
-                super.keyDown(with: event)
+            if let found = findTextField(in: child) {
+                return found
             }
         }
+        return nil
     }
 
     private func handlePaste() {
@@ -123,11 +96,6 @@ final class GalleryPanel: NSPanel {
 
     private func handlePlainPaste() {
         onPlainPaste?()
-    }
-
-    private func handleDelete() {
-        guard let clip = store.clip(at: store.selectedIndex) else { return }
-        NotificationCenter.default.post(name: .stashDeleteClip, object: clip)
     }
 
     private func handleClose() {
@@ -141,4 +109,6 @@ extension Notification.Name {
     static let stashDeleteClip = Notification.Name("stashDeleteClip")
     static let stashTogglePin = Notification.Name("stashTogglePin")
     static let stashEditClip = Notification.Name("stashEditClip")
+    static let stashOpenPreferences = Notification.Name("stashOpenPreferences")
+    static let stashFocusSearch = Notification.Name("stashFocusSearch")
 }

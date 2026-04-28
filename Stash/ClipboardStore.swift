@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import SwiftData
 
 final class ClipboardStore: ObservableObject {
     @Published var clips: [Clip] = []
@@ -12,7 +13,6 @@ final class ClipboardStore: ObservableObject {
     var displayClips: [Clip] {
         var result = clips
 
-        // Filter by active pinboard
         if let boardId = activePinboardId {
             result = result.filter { $0.pinboardId == boardId }
         }
@@ -24,7 +24,6 @@ final class ClipboardStore: ObservableObject {
             result = SearchService.filter(clips: result, query: searchText)
         }
 
-        // Pinned items first
         return result.sorted { ($0.pinnedAt != nil && $1.pinnedAt == nil) || (($0.pinnedAt ?? .distantPast) > ($1.pinnedAt ?? .distantPast) && $0.pinnedAt != nil && $1.pinnedAt != nil) }
     }
 
@@ -37,23 +36,13 @@ final class ClipboardStore: ObservableObject {
         pinboards.sorted { $0.order < $1.order }
     }
 
-    private let storageURL: URL
-    private let pinboardsURL: URL
+    private var modelContext: ModelContext
     private var lastContentHash: String?
     let searchService = SearchService()
 
-    init(directory: URL? = nil) {
-        let stashDir: URL
-        if let dir = directory {
-            stashDir = dir
-        } else {
-            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            stashDir = appSupport.appendingPathComponent("Stash", isDirectory: true)
-        }
-        try? FileManager.default.createDirectory(at: stashDir, withIntermediateDirectories: true)
-        storageURL = stashDir.appendingPathComponent("clips.json")
-        pinboardsURL = stashDir.appendingPathComponent("pinboards.json")
-        load()
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+        loadFromContext()
 
         searchService.onSearch = { [weak self] query in
             DispatchQueue.main.async {
@@ -73,11 +62,9 @@ final class ClipboardStore: ObservableObject {
         if hash == lastContentHash { return }
         lastContentHash = hash
 
-        let imagePath: String? = nil
-        var clip = Clip(
+        let clip = Clip(
             type: result.type,
             textContent: result.textContent,
-            imagePath: imagePath,
             sourceApp: NSWorkspace.shared.frontmostApplication?.localizedName,
             contentHash: hash,
             title: result.title,
@@ -95,9 +82,14 @@ final class ClipboardStore: ObservableObject {
             clip.imagePath = path
         }
 
+        modelContext.insert(clip)
+
+        if let boardId = activePinboardId {
+            clip.pinboardId = boardId
+        }
+
         clips.insert(clip, at: 0)
         selectedIndex = 0
-        save()
 
         if clip.type == .link, let url = clip.textContent {
             fetchLinkMetadata(for: url, clipId: clip.id)
@@ -106,34 +98,40 @@ final class ClipboardStore: ObservableObject {
 
     // MARK: - Clip Operations
 
+    func deleteClips(_ clipsToRemove: [Clip]) {
+        for item in clipsToRemove {
+            if let path = item.imagePath {
+                BlobStore.shared.delete(path)
+            }
+            modelContext.delete(item)
+        }
+        clips.removeAll { clip in
+            clipsToRemove.contains(where: { $0.id == clip.id })
+        }
+    }
+
     func deleteClip(_ clip: Clip) {
         if let path = clip.imagePath {
             BlobStore.shared.delete(path)
         }
         clips.removeAll { $0.id == clip.id }
+        modelContext.delete(clip)
         if selectedIndex >= displayClips.count {
             selectedIndex = max(0, displayClips.count - 1)
         }
-        save()
     }
 
     func togglePin(_ clip: Clip) {
-        guard let idx = clips.firstIndex(where: { $0.id == clip.id }) else { return }
-        clips[idx].pinnedAt = clips[idx].pinnedAt == nil ? Date() : nil
-        save()
+        clip.pinnedAt = clip.pinnedAt == nil ? Date() : nil
     }
 
     func updateClipText(_ clip: Clip, newText: String) {
-        guard let idx = clips.firstIndex(where: { $0.id == clip.id }) else { return }
-        clips[idx].textContent = newText
-        clips[idx].contentHash = DedupeHasher.hash(data: Data(newText.utf8))
-        save()
+        clip.textContent = newText
+        clip.contentHash = DedupeHasher.hash(data: Data(newText.utf8))
     }
 
     func moveClipToPinboard(_ clip: Clip, pinboardId: UUID?) {
-        guard let idx = clips.firstIndex(where: { $0.id == clip.id }) else { return }
-        clips[idx].pinboardId = pinboardId
-        save()
+        clip.pinboardId = pinboardId
     }
 
     // MARK: - Search & Filter
@@ -171,27 +169,23 @@ final class ClipboardStore: ObservableObject {
     func createPinboard(name: String, icon: String = "folder") {
         let order = pinboards.count
         let board = Pinboard(name: name, icon: icon, order: order)
+        modelContext.insert(board)
         pinboards.append(board)
-        savePinboards()
     }
 
     func renamePinboard(_ board: Pinboard, newName: String) {
-        guard let idx = pinboards.firstIndex(where: { $0.id == board.id }) else { return }
-        pinboards[idx].name = newName
-        savePinboards()
+        board.name = newName
     }
 
     func deletePinboard(_ board: Pinboard) {
-        // Unlink all clips from this pinboard
-        for idx in clips.indices where clips[idx].pinboardId == board.id {
-            clips[idx].pinboardId = nil
+        for clip in clips where clip.pinboardId == board.id {
+            clip.pinboardId = nil
         }
         pinboards.removeAll { $0.id == board.id }
+        modelContext.delete(board)
         if activePinboardId == board.id {
             activePinboardId = nil
         }
-        save()
-        savePinboards()
     }
 
     func switchToNextPinboard() {
@@ -203,7 +197,7 @@ final class ClipboardStore: ObservableObject {
            currentIdx + 1 < sorted.count {
             activePinboardId = sorted[currentIdx + 1].id
         } else {
-            activePinboardId = nil // Back to "All"
+            activePinboardId = nil
         }
         selectedIndex = 0
     }
@@ -217,49 +211,34 @@ final class ClipboardStore: ObservableObject {
            currentIdx > 0 {
             activePinboardId = sorted[currentIdx - 1].id
         } else {
-            activePinboardId = sorted.last?.id // Wrap to last
+            activePinboardId = sorted.last?.id
         }
         selectedIndex = 0
     }
 
-    // MARK: - Persistence
+    // MARK: - Private
 
     private func fetchLinkMetadata(for urlString: String, clipId: UUID) {
         LinkMetadataService.shared.fetchMetadata(for: urlString) { [weak self] meta in
             guard let meta = meta else { return }
             DispatchQueue.main.async {
                 guard let self = self,
-                      let idx = self.clips.firstIndex(where: { $0.id == clipId }) else { return }
-                self.clips[idx].title = meta.title
-                self.clips[idx].faviconPath = meta.faviconPath
-                self.save()
+                      let clip = self.clips.first(where: { $0.id == clipId }) else { return }
+                clip.title = meta.title
+                clip.faviconPath = meta.faviconPath
             }
         }
     }
 
-    private func load() {
-        guard let data = try? Data(contentsOf: storageURL) else { return }
-        clips = (try? JSONDecoder().decode([Clip].self, from: data)) ?? []
+    private func loadFromContext() {
+        let clipDescriptor = FetchDescriptor<Clip>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        clips = (try? modelContext.fetch(clipDescriptor)) ?? []
+
+        let boardDescriptor = FetchDescriptor<Pinboard>(sortBy: [SortDescriptor(\.order)])
+        pinboards = (try? modelContext.fetch(boardDescriptor)) ?? []
+
         if let first = clips.first {
             lastContentHash = first.contentHash
         }
-
-        if let data = try? Data(contentsOf: pinboardsURL) {
-            pinboards = (try? JSONDecoder().decode([Pinboard].self, from: data)) ?? []
-        }
-    }
-
-    private func save() {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .sortedKeys
-        guard let data = try? encoder.encode(clips) else { return }
-        try? data.write(to: storageURL, options: .atomic)
-    }
-
-    private func savePinboards() {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .sortedKeys
-        guard let data = try? encoder.encode(pinboards) else { return }
-        try? data.write(to: pinboardsURL, options: .atomic)
     }
 }

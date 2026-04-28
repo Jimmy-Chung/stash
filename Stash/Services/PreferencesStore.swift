@@ -1,12 +1,27 @@
 import Foundation
 import Combine
+import ServiceManagement
 
 final class PreferencesStore: ObservableObject {
     static let shared = PreferencesStore()
 
     // General
     @Published var launchAtLogin: Bool {
-        didSet { UserDefaults.standard.set(launchAtLogin, forKey: "launchAtLogin") }
+        didSet {
+            UserDefaults.standard.set(launchAtLogin, forKey: "launchAtLogin")
+            let enabled = launchAtLogin
+            DispatchQueue.main.async {
+                do {
+                    if enabled {
+                        try SMAppService.mainApp.register()
+                    } else {
+                        try SMAppService.mainApp.unregister()
+                    }
+                } catch {
+                    print("SMAppService error: \(error)")
+                }
+            }
+        }
     }
     @Published var showMenuBarIcon: Bool {
         didSet { UserDefaults.standard.set(showMenuBarIcon, forKey: "showMenuBarIcon") }
@@ -42,6 +57,11 @@ final class PreferencesStore: ObservableObject {
         didSet { UserDefaults.standard.set(autoHideOnFocusLoss, forKey: "autoHideOnFocusLoss") }
     }
 
+    // Wallpaper Theme
+    @Published var wallpaperTheme: Int {
+        didSet { UserDefaults.standard.set(wallpaperTheme, forKey: "wallpaperTheme") }
+    }
+
     enum AppearanceMode: Int {
         case system = 0, light = 1, dark = 2
     }
@@ -51,17 +71,17 @@ final class PreferencesStore: ObservableObject {
 
         var cardWidth: CGFloat {
             switch self {
-            case .compact: return 200
+            case .compact: return 220
             case .normal: return 248
-            case .cozy: return 300
+            case .cozy: return 268
             }
         }
 
         var cardHeight: CGFloat {
             switch self {
-            case .compact: return 260
+            case .compact: return 288
             case .normal: return 320
-            case .cozy: return 400
+            case .cozy: return 336
             }
         }
 
@@ -85,6 +105,7 @@ final class PreferencesStore: ObservableObject {
         self.blurAmount = UserDefaults.standard.object(forKey: "blurAmount") as? Double ?? 50.0
         self.cardDensity = UserDefaults.standard.object(forKey: "cardDensity") as? Int ?? 1
         self.autoHideOnFocusLoss = UserDefaults.standard.object(forKey: "autoHideOnFocusLoss") as? Bool ?? true
+        self.wallpaperTheme = UserDefaults.standard.object(forKey: "wallpaperTheme") as? Int ?? 0
     }
 
     var density: CardDensity {
