@@ -102,14 +102,16 @@ final class PreferencesStore: ObservableObject {
         $launchAtLogin
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
             .sink { enabled in
-                do {
-                    if enabled {
-                        try SMAppService.mainApp.register()
-                    } else {
-                        try SMAppService.mainApp.unregister()
+                DispatchQueue.global(qos: .userInitiated).async {
+                    do {
+                        if enabled {
+                            try SMAppService.mainApp.register()
+                        } else {
+                            try SMAppService.mainApp.unregister()
+                        }
+                    } catch {
+                        print("SMAppService error: \(error)")
                     }
-                } catch {
-                    print("SMAppService error: \(error)")
                 }
             }
             .store(in: &cancellables)

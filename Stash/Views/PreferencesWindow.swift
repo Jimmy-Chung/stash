@@ -295,6 +295,7 @@ struct ShortcutsTabContent: View {
 
 struct AppearanceTabContent: View {
     @ObservedObject var prefs = PreferencesStore.shared
+    @State private var localBlurAmount: Double = 50.0
 
     var body: some View {
         ScrollView {
@@ -308,9 +309,12 @@ struct AppearanceTabContent: View {
                 }
                 prefsRow("Glass Blur Amount", help: "Adjust the blur intensity of the glass panel") {
                     HStack(spacing: 10) {
-                        Slider(value: $prefs.blurAmount, in: 10...80, step: 5)
+                        Slider(value: $localBlurAmount, in: 10...80, step: 5)
                             .frame(width: 200)
-                        Text("\(Int(prefs.blurAmount))%")
+                            .onChange(of: localBlurAmount) { newValue in
+                                prefs.blurAmount = newValue
+                            }
+                        Text("\(Int(localBlurAmount))%")
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(.white.opacity(0.7))
                             .frame(width: 40)
@@ -333,6 +337,9 @@ struct AppearanceTabContent: View {
             }
             .padding(.horizontal, 28)
             .padding(.vertical, 24)
+        }
+        .onAppear {
+            localBlurAmount = prefs.blurAmount
         }
     }
 }
@@ -383,11 +390,8 @@ struct MacOSToggle: View {
 
     var body: some View {
         Button(action: {
-            let newValue = !isOn
-            DispatchQueue.main.async {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isOn = newValue
-                }
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isOn.toggle()
             }
         }) {
             ZStack(alignment: isOn ? .trailing : .leading) {

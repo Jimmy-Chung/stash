@@ -126,8 +126,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let hostingView = NSHostingView(rootView: PreferencesRootView())
-        hostingView.autoresizingMask = [.width, .height]
+        let hostingController = NSHostingController(rootView: PreferencesRootView())
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 720, height: 540),
@@ -140,8 +139,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.isReleasedWhenClosed = false
         window.backgroundColor = .clear
         window.isOpaque = false
-        window.contentView?.addSubview(hostingView)
-        hostingView.frame = window.contentView?.bounds ?? .zero
+        window.contentViewController = hostingController
 
         self.preferencesWindow = window
         panel.orderOut(nil)

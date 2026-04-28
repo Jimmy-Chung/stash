@@ -5,23 +5,19 @@ struct CardView: View {
     let isSelected: Bool
     let index: Int
     var searchQuery: String = ""
+    var cardSize: CGFloat = 268  // 默认值，由父视图传入
 
     @State private var isHovered = false
     @State private var appeared = false
-    @ObservedObject private var prefs = PreferencesStore.shared
 
     private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
-
-    private var density: PreferencesStore.CardDensity {
-        prefs.density
-    }
 
     var body: some View {
         VStack(spacing: 0) {
             cardBody
             cardFooter
         }
-        .frame(width: density.cardWidth, height: density.cardHeight)
+        .frame(width: cardSize, height: cardSize)
         .background(
             RoundedRectangle(cornerRadius: 14)
                 .fill(cardBackground)

@@ -275,7 +275,8 @@ struct GalleryView: View {
                                         clip: clip,
                                         isSelected: globalIdx == store.selectedIndex,
                                         index: globalIdx,
-                                        searchQuery: store.searchText
+                                        searchQuery: store.searchText,
+                                        cardSize: PreferencesStore.shared.density.cardWidth
                                     )
                                     .id(globalIdx)
                                     .onTapGesture {
