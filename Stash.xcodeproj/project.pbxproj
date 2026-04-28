@@ -16,6 +16,7 @@
 		2B4292FC648401D7C46BD48D /* SearchServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 923BC71264FAAF093E77C2AB /* SearchServiceTests.swift */; };
 		36BDFF1CE81E1DDB813D7647 /* CodeLanguageDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA2CB00D8526E2BC064CCED /* CodeLanguageDetector.swift */; };
 		3E0471C6CA3FA69F7ECEFA27 /* TimeGrouperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C971A5D7BF2574F198B0A31 /* TimeGrouperTests.swift */; };
+		3F5513BD92417A4F0E4D01DF /* ExceptionCatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 1FE42256D3CF798457BF07CD /* ExceptionCatcher.m */; };
 		42306EECBBF7DF70B7174E9F /* AccessibilityChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3CCC930B1A3402AC0C8CDD2 /* AccessibilityChecker.swift */; };
 		432A3A2BA50EDB5E6049EB06 /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6E60093DD4F0CE735A1DA0A /* CardView.swift */; };
 		4ABC5F74D2C361C0431B2911 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FE48DBAB68E9E944D7AA11A7 /* Assets.xcassets */; };
@@ -76,6 +77,8 @@
 		18DBCC4E2EF53EB5BDC7A134 /* StashApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StashApp.swift; sourceTree = "<group>"; };
 		1AA2CB00D8526E2BC064CCED /* CodeLanguageDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeLanguageDetector.swift; sourceTree = "<group>"; };
 		1BC918F89C20680BB2893457 /* Pinboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pinboard.swift; sourceTree = "<group>"; };
+		1FE42256D3CF798457BF07CD /* ExceptionCatcher.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ExceptionCatcher.m; sourceTree = "<group>"; };
+		241A534CCFDF99F9DBF2389A /* ExceptionCatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ExceptionCatcher.h; sourceTree = "<group>"; };
 		27A8F750B742113EA912435E /* ClipType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipType.swift; sourceTree = "<group>"; };
 		2A19484CE74671F00611E323 /* ClipboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStore.swift; sourceTree = "<group>"; };
 		2DC3D934CA37E707DFB0BCA1 /* ClipboardWatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardWatcherTests.swift; sourceTree = "<group>"; };
@@ -96,6 +99,7 @@
 		8DD016F35F3D3F1799A0854B /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
 		90883BF75612FD370C080361 /* CodeLanguageDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeLanguageDetectorTests.swift; sourceTree = "<group>"; };
 		923BC71264FAAF093E77C2AB /* SearchServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchServiceTests.swift; sourceTree = "<group>"; };
+		978A75242BCF42832829D832 /* Stash-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Stash-Bridging-Header.h"; sourceTree = "<group>"; };
 		99F85764B7CC1E9E867269C9 /* DedupeHasher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DedupeHasher.swift; sourceTree = "<group>"; };
 		9B07494A4DC9A78E2143A6D3 /* ColorParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorParser.swift; sourceTree = "<group>"; };
 		9EE49F171CE41C0C04A22A53 /* BlobStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobStore.swift; sourceTree = "<group>"; };
@@ -167,6 +171,8 @@
 				1AA2CB00D8526E2BC064CCED /* CodeLanguageDetector.swift */,
 				9B07494A4DC9A78E2143A6D3 /* ColorParser.swift */,
 				99F85764B7CC1E9E867269C9 /* DedupeHasher.swift */,
+				241A534CCFDF99F9DBF2389A /* ExceptionCatcher.h */,
+				1FE42256D3CF798457BF07CD /* ExceptionCatcher.m */,
 				0F8D1791D5E2881679E86D92 /* ImageMetadataService.swift */,
 				4E5D9B0AFE8BBF8F69D4C5C6 /* LinkMetadataService.swift */,
 				09D7FD1C5BCB72093C136FC8 /* PasteSimulator.swift */,
@@ -183,6 +189,7 @@
 				FE48DBAB68E9E944D7AA11A7 /* Assets.xcassets */,
 				2A19484CE74671F00611E323 /* ClipboardStore.swift */,
 				FB0FE92F4B2DA1E7CC7DF3AD /* Info.plist */,
+				978A75242BCF42832829D832 /* Stash-Bridging-Header.h */,
 				18DBCC4E2EF53EB5BDC7A134 /* StashApp.swift */,
 				9CC5E523AE593035ACA6B2F2 /* Models */,
 				BB45C1F26DFB869B198A4BEB /* Services */,
@@ -366,6 +373,7 @@
 				36BDFF1CE81E1DDB813D7647 /* CodeLanguageDetector.swift in Sources */,
 				1BAB8C9046BCCA3204AFF60A /* ColorParser.swift in Sources */,
 				EE878391F0C047154AE73554 /* DedupeHasher.swift in Sources */,
+				3F5513BD92417A4F0E4D01DF /* ExceptionCatcher.m in Sources */,
 				AF54D394108FB87545EA7935 /* GalleryPanel.swift in Sources */,
 				26D0AD6DEA8FDB2FC93FD567 /* GalleryView.swift in Sources */,
 				86710A9B5A0C455F66789CB0 /* ImageMetadataService.swift in Sources */,
@@ -434,6 +442,7 @@
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stash.app;
 				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Stash/Stash-Bridging-Header.h";
 				SWIFT_VERSION = 5.6;
 			};
 			name = Debug;
@@ -512,6 +521,7 @@
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stash.app;
 				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Stash/Stash-Bridging-Header.h";
 				SWIFT_VERSION = 5.6;
 			};
 			name = Release;

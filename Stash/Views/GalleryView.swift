@@ -252,51 +252,44 @@ struct GalleryView: View {
 
     private var carouselSection: some View {
         ZStack {
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 14) {
-                        let groups = TimeGrouper.groupClips(store.displayClips)
-                        ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(group.0.rawValue)
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.45))
-                                    .padding(.leading, 8)
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 14) {
+                    let groups = TimeGrouper.groupClips(store.displayClips)
+                    ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(group.0.rawValue)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.45))
+                                .padding(.leading, 8)
 
-                                HStack(spacing: 14) {
-                                    ForEach(Array(group.1.enumerated()), id: \.element.id) { _, clip in
-                                        let globalIdx = store.displayClips.firstIndex(where: { $0.id == clip.id }) ?? 0
-                                        CardView(
+                            HStack(spacing: 14) {
+                                ForEach(Array(group.1.enumerated()), id: \.element.id) { _, clip in
+                                    let globalIdx = store.displayClips.firstIndex(where: { $0.id == clip.id }) ?? 0
+                                    CardView(
+                                        clip: clip,
+                                        isSelected: globalIdx == store.selectedIndex,
+                                        index: globalIdx,
+                                        searchQuery: store.searchText
+                                    )
+                                    .id(globalIdx)
+                                    .onTapGesture {
+                                        store.selectedIndex = globalIdx
+                                    }
+                                    .contextMenu {
+                                        ClipContextMenu(
                                             clip: clip,
-                                            isSelected: globalIdx == store.selectedIndex,
-                                            index: globalIdx,
-                                            searchQuery: store.searchText
+                                            store: store,
+                                            onPaste: onPaste,
+                                            onEdit: { editingClip = clip }
                                         )
-                                        .id(globalIdx)
-                                        .onTapGesture {
-                                            store.selectedIndex = globalIdx
-                                        }
-                                        .contextMenu {
-                                            ClipContextMenu(
-                                                clip: clip,
-                                                store: store,
-                                                onPaste: onPaste,
-                                                onEdit: { editingClip = clip }
-                                            )
-                                        }
                                     }
                                 }
                             }
                         }
                     }
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 18)
                 }
-                .onChange(of: store.selectedIndex) { _ in
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        proxy.scrollTo(store.selectedIndex, anchor: .leading)
-                    }
-                }
+                .padding(.horizontal, 22)
+                .padding(.vertical, 18)
             }
 
             // Edge fades (CSS .carousel-wrap::before/after)

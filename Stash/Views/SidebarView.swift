@@ -8,6 +8,7 @@ struct SidebarView: View {
     @State private var editingPinboard: Pinboard?
     @State private var editingName = ""
     @FocusState private var isEditingFocused: Bool
+    @FocusState private var isNewPinboardFocused: Bool
 
     private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
 
@@ -43,7 +44,7 @@ struct SidebarView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 14)
             .padding(.bottom, 4)
 
             // Pinboard list
@@ -67,6 +68,7 @@ struct SidebarView: View {
                         .padding(.vertical, 5)
                         .background(Color.white.opacity(0.08))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .focused($isNewPinboardFocused)
 
                     Button(action: addPinboard) {
                         Image(systemName: "checkmark")
@@ -82,7 +84,7 @@ struct SidebarView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 10)
+                .padding(.horizontal, 14)
                 .padding(.vertical, 6)
             }
 
@@ -91,6 +93,11 @@ struct SidebarView: View {
         .frame(width: 184)
         .padding(.top, 12)
         .background(Color.white.opacity(0.03))
+        .onChange(of: isAddingPinboard) { newValue in
+            if newValue {
+                isNewPinboardFocused = true
+            }
+        }
     }
 
     @ViewBuilder
@@ -151,7 +158,9 @@ struct SidebarView: View {
             Button("Rename") {
                 editingPinboard = board
                 editingName = board.name
-                isEditingFocused = true
+                DispatchQueue.main.async {
+                    isEditingFocused = true
+                }
             }
             Divider()
             Button("Delete", role: .destructive) {
@@ -163,9 +172,12 @@ struct SidebarView: View {
     private func addPinboard() {
         let name = newPinboardName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
-        store.createPinboard(name: name)
-        newPinboardName = ""
+        isNewPinboardFocused = false
         isAddingPinboard = false
+        newPinboardName = ""
+        DispatchQueue.main.async {
+            store.createPinboard(name: name)
+        }
     }
 
     private func renamePinboard(_ board: Pinboard) {

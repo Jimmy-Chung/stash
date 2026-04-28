@@ -44,3 +44,30 @@ Bug ID 自增，每条关联测试用例和功能项。状态：`open` / `fixed`
 |---|---|---|---|---|
 | BUG-015 | 卡片长宽比需改为 1:1，上下留有空间 | F-09 | UI-02 | fixed |
 | BUG-016 | 数据保留策略：非 Pinboard 的 clip 保留 90 天后自动删除，Pinboard 内的永久保留 | F-43 | M-26 | fixed |
+
+## P1 — 功能错误（v0.5.0 第二轮）
+
+| Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
+|---|---|---|---|---|
+| BUG-017 | 菜单栏图标点击无法唤出偏好设置：Settings scene 在 MenuBarExtra-only App 中不工作 | F-39 | UI-19 | fixed |
+| BUG-018 | 卡片选中时自动滚动到 .leading，应保持原位不滚动 | F-09 | UI-02 | fixed |
+| BUG-019 | 右箭头键视觉跳页：selectNext 正确但 scroll-to-leading 导致视觉翻页效果 | F-10 | UI-03 | fixed |
+| BUG-020 | 面板右上角齿轮按钮点击无反应（与 BUG-017 同因） | F-39 | UI-19 | fixed |
+| BUG-024 | 偏好设置窗口内控件不可点击（NSWindow 管理方式 + contentShape 缺失） | F-39 | UI-19 | fixed |
+
+## P2 — 交互问题（v0.5.0 第二轮）
+
+| Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
+|---|---|---|---|---|
+| BUG-021 | 添加 Pinboard 时输入框不自动聚焦，缺少 @FocusState | F-30 | - | fixed |
+| BUG-022 | 输入新 Pinboard 名字时崩溃：TextField 在 isAddingPinboard 变 false 期间仍在 responder chain | F-30 | - | fixed |
+| BUG-023 | 侧栏布局间距不一致：PINBOARDS header padding 12px 与 All Clips 14px 不对齐 | F-29 | UI-17 | fixed |
+
+## v0.5.0 第三轮（二次复查发现的回归 / 漏修）
+
+| Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
+|---|---|---|---|---|
+| BUG-012R | Accessibility 启动引导回归：第二轮改动把 NSAlert 整段删掉了，恢复 | F-13 | M-07, M-29 | fixed |
+| BUG-004R | Space 键修过头：handleKey 无条件吞 Space，搜索框/rename 输入框打不出空格。补 isEditingTextField 判断后放行 | F-25 | UI-09 | fixed |
+| BUG-014R | menu-icon.imageset 加了但 MenuBarExtra 仍用 systemImage，资源未生效 | F-46 | M-29 | fixed |
+| BUG-011R | rename 焦点时序：editingPinboard 与 isEditingFocused 同步设置，TextField 还没渲染 focus 落空。改 DispatchQueue.main.async | F-30 | - | fixed |

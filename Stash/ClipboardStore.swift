@@ -170,6 +170,13 @@ final class ClipboardStore: ObservableObject {
         let order = pinboards.count
         let board = Pinboard(name: name, icon: icon, order: order)
         modelContext.insert(board)
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to create pinboard: \(error)")
+            modelContext.rollback()
+            return
+        }
         pinboards.append(board)
     }
 

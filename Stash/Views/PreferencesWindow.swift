@@ -403,5 +403,6 @@ struct MacOSToggle: View {
             }
         }
         .buttonStyle(.plain)
+        .contentShape(Rectangle())
     }
 }

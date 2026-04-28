@@ -16,13 +16,14 @@ final class PreferencesTests: XCTestCase {
     }
 
     func testCardDensitySizes() {
-        XCTAssertEqual(PreferencesStore.CardDensity.compact.cardWidth, 220)
-        XCTAssertEqual(PreferencesStore.CardDensity.normal.cardWidth, 248)
-        XCTAssertEqual(PreferencesStore.CardDensity.cozy.cardWidth, 268)
+        // BUG-015: cards are now 1:1 aspect ratio
+        XCTAssertEqual(PreferencesStore.CardDensity.compact.cardWidth, 240)
+        XCTAssertEqual(PreferencesStore.CardDensity.normal.cardWidth, 268)
+        XCTAssertEqual(PreferencesStore.CardDensity.cozy.cardWidth, 290)
 
-        XCTAssertEqual(PreferencesStore.CardDensity.compact.cardHeight, 288)
-        XCTAssertEqual(PreferencesStore.CardDensity.normal.cardHeight, 320)
-        XCTAssertEqual(PreferencesStore.CardDensity.cozy.cardHeight, 336)
+        XCTAssertEqual(PreferencesStore.CardDensity.compact.cardHeight, 240)
+        XCTAssertEqual(PreferencesStore.CardDensity.normal.cardHeight, 268)
+        XCTAssertEqual(PreferencesStore.CardDensity.cozy.cardHeight, 290)
     }
 
     func testAppearanceModes() {

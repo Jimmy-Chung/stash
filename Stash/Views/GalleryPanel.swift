@@ -8,6 +8,9 @@ final class GalleryPanel: NSPanel {
     var onClose: (() -> Void)?
     var onPlainPaste: (() -> Void)?
 
+    private var keyMonitor: Any?
+    private var isSpaceDown = false
+
     init(store: ClipboardStore) {
         self.store = store
 
@@ -51,92 +54,10 @@ final class GalleryPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 
-    private var isSpaceDown = false
-
-    override func keyDown(with event: NSEvent) {
-        let mods = event.modifierFlags
-        let keyCode = event.keyCode
-        let chars = event.charactersIgnoringModifiers
-
-        // Command combinations
-        if mods.contains(.command) {
-            // ⌘1-9: Quick paste
-            if let char = chars, let digit = Int(char), (1...9).contains(digit) {
-                if let clip = store.clip(at: digit - 1) {
-                    clip.writeToPasteboard()
-                    handleClose()
-                    PasteSimulator.simulatePaste()
-                }
-                return
-            }
-            switch chars {
-            case "p":
-                NotificationCenter.default.post(name: .stashTogglePin, object: nil)
-                return
-            case "e":
-                NotificationCenter.default.post(name: .stashEditClip, object: nil)
-                return
-            case "f":
-                focusSearchField()
-                return
-            case "[":
-                store.switchToPreviousPinboard()
-                return
-            case "]":
-                store.switchToNextPinboard()
-                return
-            default: break
-            }
-        }
-
-        // Shift+Return: plain paste
-        if keyCode == 36 && mods.contains(.shift) && !mods.contains(.command) {
-            handlePlainPaste()
-            return
-        }
-
-        // Return: paste
-        if keyCode == 36 && !mods.contains(.command) {
-            handlePaste()
-            return
-        }
-
-        switch keyCode {
-        case 123: // Left
-            store.selectPrevious()
-        case 124: // Right
-            store.selectNext()
-        case 53: // Escape
-            handleClose()
-        case 49: // Space
-            if !isSpaceDown {
-                isSpaceDown = true
-                NotificationCenter.default.post(name: .stashToggleQuickLook, object: nil)
-            }
-        case 51: // Delete
-            if let clip = store.clip(at: store.selectedIndex) {
-                if clip.isPinned {
-                    NotificationCenter.default.post(name: .stashDeleteClip, object: clip)
-                } else {
-                    store.deleteClip(clip)
-                }
-            }
-        default:
-            super.keyDown(with: event)
-        }
-    }
-
-    override func keyUp(with event: NSEvent) {
-        if event.keyCode == 49 && isSpaceDown {
-            isSpaceDown = false
-            NotificationCenter.default.post(name: .stashToggleQuickLook, object: nil)
-        }
-        super.keyUp(with: event)
-    }
-
     override func resignKey() {
         super.resignKey()
         if PreferencesStore.shared.autoHideOnFocusLoss {
+            removeKeyMonitor()
             orderOut(nil)
         }
     }
@@ -150,13 +71,132 @@ final class GalleryPanel: NSPanel {
         let panelY = visibleFrame.minY
 
         setFrame(NSRect(x: panelX, y: panelY, width: panelWidth, height: panelHeight), display: true)
+        NSApp.activate(ignoringOtherApps: true)
         makeKeyAndOrderFront(nil)
+        installKeyMonitor()
     }
+
+    // MARK: - Key Monitor
+
+    private func installKeyMonitor() {
+        removeKeyMonitor()
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
+            guard let self = self, self.isVisible else { return event }
+
+            if event.type == .keyDown, self.handleKey(event) {
+                return nil
+            }
+            if event.type == .keyUp, self.handleKeyUp(event) {
+                return nil
+            }
+            return event
+        }
+    }
+
+    private func removeKeyMonitor() {
+        if let monitor = keyMonitor {
+            NSEvent.removeMonitor(monitor)
+            keyMonitor = nil
+        }
+        isSpaceDown = false
+    }
+
+    private var isEditingTextField: Bool {
+        guard let responder = firstResponder else { return false }
+        if responder is NSTextView { return true }
+        if let tf = responder as? NSTextField, tf.isEditable { return true }
+        return false
+    }
+
+    private func handleKey(_ event: NSEvent) -> Bool {
+        let mods = event.modifierFlags
+        let keyCode = event.keyCode
+        let chars = event.charactersIgnoringModifiers
+        let editing = isEditingTextField
+
+        if mods.contains(.command) {
+            if let char = chars, let digit = Int(char), (1...9).contains(digit) {
+                if let clip = store.clip(at: digit - 1) {
+                    clip.writeToPasteboard()
+                    handleClose()
+                    PasteSimulator.simulatePaste()
+                }
+                return true
+            }
+            switch chars {
+            case "p":
+                NotificationCenter.default.post(name: .stashTogglePin, object: nil)
+                return true
+            case "e":
+                NotificationCenter.default.post(name: .stashEditClip, object: nil)
+                return true
+            case "f":
+                focusSearchField()
+                return true
+            case "[":
+                store.switchToPreviousPinboard()
+                return true
+            case "]":
+                store.switchToNextPinboard()
+                return true
+            default: return false
+            }
+        }
+
+        // Esc always closes (also blurs textfield as side-effect)
+        if keyCode == 53 {
+            handleClose()
+            return true
+        }
+
+        // When typing in search/rename, let everything else through (Space, ←→, Backspace, Enter)
+        if editing { return false }
+
+        if keyCode == 36 && mods.contains(.shift) {
+            handlePlainPaste()
+            return true
+        }
+        if keyCode == 36 {
+            handlePaste()
+            return true
+        }
+
+        switch keyCode {
+        case 123: store.selectPrevious(); return true
+        case 124: store.selectNext(); return true
+        case 49:
+            if !isSpaceDown {
+                isSpaceDown = true
+                NotificationCenter.default.post(name: .stashToggleQuickLook, object: nil)
+            }
+            return true
+        case 51:
+            if let clip = store.clip(at: store.selectedIndex) {
+                if clip.isPinned {
+                    NotificationCenter.default.post(name: .stashDeleteClip, object: clip)
+                } else {
+                    store.deleteClip(clip)
+                }
+            }
+            return true
+        default: return false
+        }
+    }
+
+    private func handleKeyUp(_ event: NSEvent) -> Bool {
+        if event.keyCode == 49 && isSpaceDown {
+            isSpaceDown = false
+            NotificationCenter.default.post(name: .stashToggleQuickLook, object: nil)
+            return true
+        }
+        return false
+    }
+
+    // MARK: - Helpers
 
     private func focusSearchField() {
         guard let contentView = contentView else { return }
-        let textField = findTextField(in: contentView)
-        if let field = textField {
+        if let field = findTextField(in: contentView) {
             makeFirstResponder(field)
         }
     }
@@ -182,6 +222,7 @@ final class GalleryPanel: NSPanel {
     }
 
     private func handleClose() {
+        removeKeyMonitor()
         orderOut(nil)
         onClose?()
     }
