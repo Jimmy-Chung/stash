@@ -48,6 +48,12 @@ struct PreferencesRootView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Version footer
+            Text("Stash \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
+                .font(.system(size: 11))
+                .foregroundColor(.white.opacity(0.35))
+                .padding(.bottom, 10)
         }
         .frame(width: 720, height: 540)
         .background(Color(red: 40/255, green: 40/255, blue: 44/255))
