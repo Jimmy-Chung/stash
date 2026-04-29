@@ -28,7 +28,8 @@
 
 ## 规则
 
-- 每次发版时，Preferences（设置页）底部必须显示当前版本号（如 `v0.5.0`），从 `Info.plist` 的 `CFBundleShortVersionString` 读取。
+- 每次发版时，Preferences（设置页）底部必须显示当前版本号（如 `v0.6.1`），从 `Info.plist` 的 `CFBundleShortVersionString` 读取。
+- 打 DMG 时必须同时打两个版本：Apple Silicon (arm64) 和 Intel (x86_64)，使用 `scripts/build-dmg.sh`。
 
 ## 当前状态
 
