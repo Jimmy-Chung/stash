@@ -15,7 +15,7 @@ struct ParsedClip {
 
     var hashData: Data {
         switch type {
-        case .text, .link, .code, .address, .color, .rtf, .html:
+        case .text, .link, .code, .color, .rtf:
             return Data((textContent ?? "").utf8)
         case .image:
             return imageData ?? Data()
@@ -103,14 +103,20 @@ enum ClipParser {
             return ParsedClip(type: .rtf, textContent: text, imageData: nil)
         }
 
-        // 4. HTML data
+        // 4. HTML data — split by what the user actually copied.
+        //    If the user-visible string has HTML tags they intended to keep
+        //    raw markup (treat as Code/HTML); otherwise it's rich text from a
+        //    web page or doc and the stripped text is what they want (Text).
         if let data = pasteboard.data(forType: .html) {
             let html = String(data: data, encoding: .utf8) ?? ""
-            let text = stripHTMLTags(html)
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let visible = pasteboard.string(forType: .string) ?? stripHTMLTags(html)
+            let trimmed = visible.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
             if let special = detectSpecialType(trimmed) { return special }
-            return ParsedClip(type: .html, textContent: text, imageData: nil)
+            if containsHTMLTags(trimmed) {
+                return ParsedClip(type: .code, textContent: visible, imageData: nil, codeLanguage: "HTML")
+            }
+            return ParsedClip(type: .text, textContent: visible, imageData: nil)
         }
 
         // 5. URL string
@@ -143,15 +149,18 @@ enum ClipParser {
         if let color = ColorParser.parse(trimmed) {
             return ParsedClip(type: .color, textContent: trimmed, imageData: nil, colorHex: color.hex, colorRGB: color.rgb)
         }
-        // Address
-        if let address = AddressDetector.detect(in: trimmed) {
-            return ParsedClip(type: .address, textContent: address, imageData: nil)
-        }
         // Code
         if let detection = CodeLanguageDetector.detect(trimmed) {
             return ParsedClip(type: .code, textContent: trimmed, imageData: nil, codeLanguage: detection.language)
         }
         return nil
+    }
+
+    private static func containsHTMLTags(_ s: String) -> Bool {
+        // Match an opening/closing HTML tag like <div>, <a href=…>, </p>, <br/>.
+        // Conservative: requires `<` followed by an ASCII letter (or `/` then a
+        // letter), so stray comparison operators like `a < b` don't trigger.
+        return s.range(of: "</?[a-zA-Z][a-zA-Z0-9]*(\\s[^>]*)?/?>", options: .regularExpression) != nil
     }
 
     private static func stripHTMLTags(_ html: String) -> String {

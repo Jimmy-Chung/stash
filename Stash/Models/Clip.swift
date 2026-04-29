@@ -82,7 +82,7 @@ final class Clip {
         }
 
         switch type {
-        case .text, .code, .address:
+        case .text, .code:
             if let text = textContent {
                 pasteboard.setString(text, forType: .string)
             }
@@ -106,13 +106,6 @@ final class Clip {
             }
             if let data = rtfDataFromStorage {
                 pasteboard.setData(data, forType: .rtf)
-            }
-        case .html:
-            if let text = textContent {
-                pasteboard.setString(text, forType: .string)
-            }
-            if let html = textContent, let data = html.data(using: .utf8) {
-                pasteboard.setData(data, forType: .html)
             }
         case .file:
             if let path = textContent {

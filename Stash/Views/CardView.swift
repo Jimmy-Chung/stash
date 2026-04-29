@@ -150,11 +150,9 @@ struct CardView: View {
         case .image: imageBody
         case .link: linkBody
         case .rtf: textBody
-        case .html: textBody
         case .file: fileBody
         case .color: colorBody
         case .code: codeBody
-        case .address: addressBody
         }
     }
 
@@ -438,24 +436,6 @@ struct CardView: View {
         }
         .padding(EdgeInsets(top: 18, leading: 16, bottom: 12, trailing: 16))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Address (CSS .cb-address with emoji)
-
-    private var addressBody: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("\u{1F4CD}")
-                .font(.system(size: 22))
-
-            Text(clip.textContent ?? "")
-                .font(.system(size: 13.5))
-                .lineSpacing(1.6)
-                .foregroundColor(.white.opacity(0.92))
-                .lineLimit(4)
-                .multilineTextAlignment(.leading)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(EdgeInsets(top: 18, leading: 16, bottom: 12, trailing: 16))
     }
 
     // MARK: - Card Footer (app icon + relative timestamp)

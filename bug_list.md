@@ -96,3 +96,9 @@ Bug ID 自增，每条关联测试用例和功能项。状态：`open` / `fixed`
 | BUG-037 | All Clips 视图下 Pin badge 不显示：pinColor(for:) 中 activePinboardId == nil 直接返回 nil | F-52 | UI-17 | fixed |
 | BUG-038 | Appearance 设置页 Theme 选项多余：当前仅暗色模式，无其他主题可选 | F-42 | UI-22 | fixed |
 | BUG-039 | 首次启动顺序错误：应先打开设置页再弹出辅助功能授权弹窗 | F-13 | M-07 | fixed |
+
+## v0.6.x（搜索态粘贴回归）
+
+| Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
+|---|---|---|---|---|
+| BUG-040 | 搜索后选中卡片按 Enter 不粘贴：搜索框聚焦时 handleKey 直接 return false 让 Enter 流到 TextField 被吞掉。仅当 firstResponder 的 fieldEditor 属于搜索框（placeholder == "Search clips..."）时拦截 Enter 触发粘贴，避免影响 Pinboard 重命名提交 | F-12, F-27 | UI-05, UI-11 | fixed |
