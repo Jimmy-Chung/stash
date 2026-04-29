@@ -151,6 +151,12 @@ final class GalleryPanel: NSPanel {
         return false
     }
 
+    private var isEditingSearchField: Bool {
+        guard let textView = firstResponder as? NSTextView,
+              let textField = textView.delegate as? NSTextField else { return false }
+        return textField.placeholderString == "Search clips..."
+    }
+
     private func handleKey(_ event: NSEvent) -> Bool {
         let mods = event.modifierFlags
         let keyCode = event.keyCode
@@ -217,6 +223,18 @@ final class GalleryPanel: NSPanel {
         case 123: store.selectPrevious(); NotificationCenter.default.post(name: .stashKeyboardScroll, object: nil); return true
         case 124: store.selectNext(); NotificationCenter.default.post(name: .stashKeyboardScroll, object: nil); return true
         default: break
+        }
+
+        // Enter while the search field is focused should paste the selected
+        // clip — otherwise the TextField swallows the key and the user has to
+        // tab out before they can paste a search result.
+        if keyCode == 36 && isEditingSearchField {
+            if mods.contains(.shift) {
+                handlePlainPaste()
+            } else {
+                handlePaste()
+            }
+            return true
         }
 
         // When typing in search/rename, let everything else through (Space, Backspace, Enter)
