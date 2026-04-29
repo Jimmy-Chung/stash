@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 // MARK: - Root View
 
@@ -140,6 +141,7 @@ struct GeneralTabContent: View {
 struct ShortcutsTabContent: View {
     @ObservedObject var prefs = PreferencesStore.shared
     @State private var isRecording = false
+    @State private var eventMonitor: Any?
 
     var body: some View {
         ScrollView {
@@ -147,8 +149,8 @@ struct ShortcutsTabContent: View {
                 // Global hotkey recorder
                 prefsRow("Global Hotkey", help: "Press the button then type your new shortcut") {
                     HStack(spacing: 8) {
-                        Button(action: { isRecording.toggle() }) {
-                            Text(isRecording ? "Press new shortcut..." : "\u{2318}\u{21E7}V")
+                        Button(action: { toggleRecording() }) {
+                            Text(isRecording ? "Press new shortcut..." : shortcutDisplayText)
                                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                                 .foregroundColor(isRecording ? .white : .white.opacity(0.85))
                                 .padding(.horizontal, 10)
@@ -227,12 +229,73 @@ struct ShortcutsTabContent: View {
             alignment: .bottom
         )
     }
+
+    private var shortcutDisplayText: String {
+        if prefs.globalHotKeyCode == 0 && prefs.globalHotKeyModifiers == 0 {
+            return "\u{2318}\u{21E7}V"
+        }
+        var parts: [String] = []
+        let mods = NSEvent.ModifierFlags(rawValue: UInt(prefs.globalHotKeyModifiers))
+        if mods.contains(.command) { parts.append("\u{2318}") }
+        if mods.contains(.option) { parts.append("\u{2325}") }
+        if mods.contains(.control) { parts.append("\u{2303}") }
+        if mods.contains(.shift) { parts.append("\u{21E7}") }
+        if let keyChar = keyChar(for: UInt16(prefs.globalHotKeyCode)) {
+            parts.append(keyChar)
+        } else {
+            parts.append("?")
+        }
+        return parts.joined()
+    }
+
+    private func toggleRecording() {
+        if isRecording {
+            stopRecording()
+        } else {
+            startRecording()
+        }
+    }
+
+    private func startRecording() {
+        isRecording = true
+        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            guard !mods.isEmpty else { return event }
+            self.prefs.globalHotKeyModifiers = UInt32(mods.rawValue)
+            self.prefs.globalHotKeyCode = UInt32(event.keyCode)
+            self.stopRecording()
+            NotificationCenter.default.post(name: .stashHotkeyChanged, object: nil)
+            return nil
+        }
+    }
+
+    private func stopRecording() {
+        if let monitor = eventMonitor {
+            NSEvent.removeMonitor(monitor)
+            eventMonitor = nil
+        }
+        isRecording = false
+    }
+
+    private func keyChar(for keyCode: UInt16) -> String? {
+        switch keyCode {
+        case 0: return "A"; case 1: return "S"; case 2: return "D"; case 3: return "F"
+        case 4: return "H"; case 5: return "G"; case 6: return "Z"; case 7: return "X"
+        case 8: return "C"; case 9: return "V"; case 10: return "B"; case 11: return "Q"
+        case 12: return "W"; case 13: return "E"; case 14: return "R"; case 15: return "Y"
+        case 16: return "T"; case 31: return "O"; case 32: return "U"; case 34: return "I"
+        case 35: return "P"; case 36: return "Enter"; case 37: return "L"; case 38: return "J"
+        case 40: return "K"; case 49: return "Space"; case 51: return "Delete"
+        default: return nil
+        }
+    }
 }
 
 // MARK: - Appearance Tab
 
 struct AppearanceTabContent: View {
     @ObservedObject var prefs = PreferencesStore.shared
+    @State private var localBlurAmount: Double = 50.0
 
     var body: some View {
         ScrollView {
@@ -246,9 +309,12 @@ struct AppearanceTabContent: View {
                 }
                 prefsRow("Glass Blur Amount", help: "Adjust the blur intensity of the glass panel") {
                     HStack(spacing: 10) {
-                        Slider(value: $prefs.blurAmount, in: 10...80, step: 5)
+                        Slider(value: $localBlurAmount, in: 10...80, step: 5)
                             .frame(width: 200)
-                        Text("\(Int(prefs.blurAmount))%")
+                            .onChange(of: localBlurAmount) { newValue in
+                                prefs.blurAmount = newValue
+                            }
+                        Text("\(Int(localBlurAmount))%")
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(.white.opacity(0.7))
                             .frame(width: 40)
@@ -271,6 +337,9 @@ struct AppearanceTabContent: View {
             }
             .padding(.horizontal, 28)
             .padding(.vertical, 24)
+        }
+        .onAppear {
+            localBlurAmount = prefs.blurAmount
         }
     }
 }
@@ -321,11 +390,8 @@ struct MacOSToggle: View {
 
     var body: some View {
         Button(action: {
-            let newValue = !isOn
-            DispatchQueue.main.async {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isOn = newValue
-                }
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isOn.toggle()
             }
         }) {
             ZStack(alignment: isOn ? .trailing : .leading) {
@@ -341,5 +407,6 @@ struct MacOSToggle: View {
             }
         }
         .buttonStyle(.plain)
+        .contentShape(Rectangle())
     }
 }

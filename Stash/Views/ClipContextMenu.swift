@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ClipContextMenu: View {
     let clip: Clip
@@ -8,6 +9,7 @@ struct ClipContextMenu: View {
 
     @State private var isRenaming = false
     @State private var newName = ""
+    @State private var showDeleteConfirmation = false
 
     var body: some View {
         Group {
@@ -30,8 +32,14 @@ struct ClipContextMenu: View {
                     }
                     Divider()
                     ForEach(store.sortedPinboards) { board in
-                        Button(board.name) {
+                        Button(action: {
                             store.moveClipToPinboard(clip, pinboardId: board.id)
+                        }) {
+                            Label {
+                                Text(board.name)
+                            } icon: {
+                                Image(nsImage: Self.coloredDot(hex: board.accent))
+                            }
                         }
                     }
                 }
@@ -53,7 +61,11 @@ struct ClipContextMenu: View {
             Divider()
 
             Button("Delete", role: .destructive) {
-                store.deleteClip(clip)
+                if clip.isPinned {
+                    showDeleteConfirmation = true
+                } else {
+                    store.deleteClip(clip)
+                }
             }
         }
         .alert("Rename", isPresented: $isRenaming) {
@@ -63,6 +75,27 @@ struct ClipContextMenu: View {
                 clip.fileName = newName
             }
         }
+        .alert("Delete Pinned Item?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                store.deleteClip(clip)
+            }
+        } message: {
+            Text("This item is pinned. Are you sure you want to delete it?")
+        }
+    }
+
+    // NSMenu drops foregroundStyle on SF Symbol images, so render a real
+    // colored bitmap and feed it in with isTemplate = false.
+    static func coloredDot(hex: String, size: CGFloat = 10) -> NSImage {
+        let nsColor = NSColor(Color(hex: hex) ?? .gray)
+        let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
+            nsColor.setFill()
+            NSBezierPath(ovalIn: rect).fill()
+            return true
+        }
+        image.isTemplate = false
+        return image
     }
 }
 

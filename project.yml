@@ -27,6 +27,7 @@ targets:
         CODE_SIGN_IDENTITY: "-"
         GENERATE_INFOPLIST_FILE: false
         INFOPLIST_FILE: Stash/Info.plist
+        SWIFT_OBJC_BRIDGING_HEADER: Stash/Stash-Bridging-Header.h
 
   StashTests:
     type: bundle.unit-test

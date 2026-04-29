@@ -6,37 +6,40 @@ import SwiftData
 @main
 struct StashApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @ObservedObject private var prefs = PreferencesStore.shared
 
     var body: some Scene {
-        MenuBarExtra("Stash", systemImage: "doc.on.clipboard", isInserted: Binding(
-            get: { prefs.showMenuBarIcon },
-            set: { prefs.showMenuBarIcon = $0 }
+        MenuBarExtra("Stash", image: "menu-icon", isInserted: Binding(
+            get: { UserDefaults.standard.bool(forKey: "showMenuBarIcon") },
+            set: { UserDefaults.standard.set($0, forKey: "showMenuBarIcon") }
         )) {
-            Button("Preferences...") {
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-            }
-            .keyboardShortcut(",", modifiers: .command)
-            Divider()
-            Button("Quit Stash") {
-                NSApplication.shared.terminate(nil)
-            }
-            .keyboardShortcut("q", modifiers: .command)
+            MenuBarContent()
         }
+    }
+}
 
-        Settings {
-            PreferencesRootView()
+struct MenuBarContent: View {
+    var body: some View {
+        Button("Preferences...") {
+            (NSApp.delegate as? AppDelegate)?.showPreferences()
         }
+        .keyboardShortcut(",", modifiers: .command)
+        Divider()
+        Button("Quit Stash") {
+            NSApplication.shared.terminate(nil)
+        }
+        .keyboardShortcut("q", modifiers: .command)
     }
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var store: ClipboardStore!
     var panel: GalleryPanel!
+    var preferencesWindow: NSWindow?
     var clipboardWatcher: ClipboardWatcher!
     var globalHotKey: HotKey?
     let prefs = PreferencesStore.shared
     var modelContainer: ModelContainer!
+    var previousApp: NSRunningApplication?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
@@ -64,19 +67,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         clipboardWatcher.start()
 
-        let hotKey = HotKey(key: .v, modifiers: [.command, .shift])
-        hotKey.keyDownHandler = { [weak self] in
-            DispatchQueue.main.async {
-                self?.togglePanel()
-            }
+        registerGlobalHotKey()
+
+        NotificationCenter.default.addObserver(
+            forName: .stashHotkeyChanged,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.registerGlobalHotKey()
         }
-        globalHotKey = hotKey
 
         NotificationCenter.default.addObserver(
             forName: .stashOpenPreferences,
             object: nil, queue: .main
-        ) { _ in
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        ) { [weak self] _ in
+            self?.showPreferences()
+        }
+
+        // 90-day data retention cleanup
+        store.cleanupExpiredClips()
+        Timer.scheduledTimer(withTimeInterval: 86400, repeats: true) { [weak self] _ in
+            self?.store.cleanupExpiredClips()
+        }
+
+        // Accessibility startup guide (async to avoid blocking launch)
+        // Skip in test environment to avoid blocking on modal alert
+        let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        if !isTesting {
+            DispatchQueue.main.async {
+                if !AccessibilityChecker.isTrusted {
+                    let alert = NSAlert()
+                    alert.messageText = "Stash Needs Accessibility Access"
+                    alert.informativeText = "Stash requires Accessibility permission to simulate paste (\u{2318}V).\n\nClick OK to open System Settings, then enable Stash under Privacy > Accessibility."
+                    alert.addButton(withTitle: "Open System Settings")
+                    alert.addButton(withTitle: "Later")
+                    alert.alertStyle = .warning
+                    if alert.runModal() == .alertFirstButtonReturn {
+                        AccessibilityChecker.openSystemSettings()
+                    }
+                }
+            }
         }
     }
 
@@ -84,22 +113,83 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if panel.isVisible {
             panel.orderOut(nil)
         } else {
+            previousApp = NSWorkspace.shared.frontmostApplication
             panel.show()
         }
+    }
+
+    @objc func showPreferences() {
+        if let window = preferencesWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let hostingController = NSHostingController(rootView: PreferencesRootView())
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 540),
+            styleMask: [.titled, .closable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isReleasedWhenClosed = false
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.contentViewController = hostingController
+
+        self.preferencesWindow = window
+        panel.orderOut(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        window.center()
+        window.makeKeyAndOrderFront(nil)
     }
 
     private func pasteSelected() {
         guard let clip = store.clip(at: store.selectedIndex) else { return }
         clip.writeToPasteboard()
-        panel.orderOut(nil)
-        PasteSimulator.simulatePaste()
+        restorePreviousAppAndPaste()
     }
 
     private func pastePlainSelected() {
         guard let clip = store.clip(at: store.selectedIndex) else { return }
         clip.writeToPasteboard(plainTextOnly: true)
+        restorePreviousAppAndPaste()
+    }
+
+    private func restorePreviousAppAndPaste() {
+        let app = previousApp
+        let pid = app?.processIdentifier ?? 0
         panel.orderOut(nil)
-        PasteSimulator.simulatePaste()
+        NSApp.hide(nil)
+        if let app = app {
+            app.activate(options: .activateIgnoringOtherApps)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            PasteSimulator.simulatePaste(to: pid)
+        }
+    }
+
+    private func registerGlobalHotKey() {
+        let hotKey: HotKey
+        if prefs.globalHotKeyModifiers == 0 {
+            hotKey = HotKey(key: .v, modifiers: [.command, .shift])
+        } else {
+            let mods = NSEvent.ModifierFlags(rawValue: UInt(prefs.globalHotKeyModifiers))
+            if let hk = Key(carbonKeyCode: prefs.globalHotKeyCode) {
+                hotKey = HotKey(key: hk, modifiers: mods)
+            } else {
+                hotKey = HotKey(key: .v, modifiers: [.command, .shift])
+            }
+        }
+        hotKey.keyDownHandler = { [weak self] in
+            DispatchQueue.main.async {
+                self?.togglePanel()
+            }
+        }
+        globalHotKey = hotKey
     }
 
     private func enforceHistoryLimit() {
