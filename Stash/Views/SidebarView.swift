@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct SidebarView: View {
     @ObservedObject var store: ClipboardStore
+    @Binding var showsLabels: Bool
     @State private var isAddingPinboard = false
     @State private var newPinboardName = ""
     @State private var editingPinboard: Pinboard?
@@ -20,7 +21,8 @@ struct SidebarView: View {
                 name: "All Clips",
                 count: store.clips.count,
                 isActive: store.activePinboardId == nil,
-                accentColor: accentColor
+                accentColor: accentColor,
+                showsLabel: showsLabels
             ) {
                 DispatchQueue.main.async {
                     store.activePinboardId = nil
@@ -34,19 +36,25 @@ struct SidebarView: View {
 
             // Pinboards header
             HStack {
-                Text("Pinboards")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.4))
-                    .textCase(.uppercase)
-                Spacer()
-                Button(action: { isAddingPinboard = true }) {
+                if showsLabels {
+                    Text("Pinboards")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.4))
+                        .textCase(.uppercase)
+                    Spacer()
+                }
+                Button(action: {
+                    if !showsLabels { showsLabels = true }
+                    isAddingPinboard = true
+                }) {
                     Image(systemName: "plus")
                         .font(.system(size: 11))
                         .foregroundColor(.white.opacity(0.5))
+                        .frame(maxWidth: showsLabels ? nil : .infinity)
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, showsLabels ? 14 : 6)
             .padding(.bottom, 4)
 
             // Pinboard list
@@ -59,8 +67,8 @@ struct SidebarView: View {
                 .padding(.horizontal, 4)
             }
 
-            // New pinboard input
-            if isAddingPinboard {
+            // New pinboard input (only meaningful in labels mode)
+            if showsLabels && isAddingPinboard {
                 HStack(spacing: 6) {
                     TextField("Name", text: $newPinboardName, onCommit: addPinboard)
                         .textFieldStyle(.plain)
@@ -92,7 +100,7 @@ struct SidebarView: View {
 
             Spacer()
         }
-        .frame(width: 184)
+        .frame(width: showsLabels ? 184 : 56)
         .padding(.top, 12)
         .background(Color.white.opacity(0.03))
         .onChange(of: isAddingPinboard) { newValue in
@@ -106,6 +114,7 @@ struct SidebarView: View {
     private func pinboardRow(_ board: Pinboard) -> some View {
         let isActive = store.activePinboardId == board.id
         let clipCount = store.clips.filter { $0.pinboardId == board.id }.count
+        let boardColor = Color(hex: board.accent) ?? accentColor
 
         Button(action: {
             if editingPinboard?.id != board.id {
@@ -116,37 +125,41 @@ struct SidebarView: View {
             }
         }) {
             HStack(spacing: 8) {
-                Image(systemName: board.icon)
-                    .font(.system(size: 12))
-                    .foregroundColor(isActive ? accentColor : .white.opacity(0.5))
+                Image(systemName: "circle.fill")
+                    .font(.system(size: 10))
+                    .foregroundColor(isActive ? boardColor : boardColor.opacity(0.85))
+                    .frame(maxWidth: showsLabels ? nil : .infinity)
 
-                if editingPinboard?.id == board.id {
-                    TextField(board.name, text: $editingName, onCommit: { renamePinboard(board) })
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 12))
-                        .foregroundColor(.white)
-                        .focused($isEditingFocused)
-                } else {
-                    Text(board.name)
-                        .font(.system(size: 12))
-                        .foregroundColor(isActive ? .white : .white.opacity(0.7))
-                        .lineLimit(1)
-                }
+                if showsLabels {
+                    if editingPinboard?.id == board.id {
+                        TextField(board.name, text: $editingName, onCommit: { renamePinboard(board) })
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 12))
+                            .foregroundColor(.white)
+                            .focused($isEditingFocused)
+                    } else {
+                        Text(board.name)
+                            .font(.system(size: 12))
+                            .foregroundColor(isActive ? .white : .white.opacity(0.7))
+                            .lineLimit(1)
+                    }
 
-                Spacer()
+                    Spacer()
 
-                if isActive {
-                    Text("\(clipCount)")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundColor(accentColor.opacity(0.7))
+                    if isActive {
+                        Text("\(clipCount)")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(boardColor.opacity(0.85))
+                    }
                 }
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, showsLabels ? 10 : 4)
             .padding(.vertical, 6)
-            .background(isActive ? accentColor.opacity(0.12) : Color.clear)
+            .background(isActive ? boardColor.opacity(0.16) : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
+        .help(showsLabels ? "" : board.name)
         .onDrop(of: [.text], isTargeted: nil) { providers in
             guard let provider = providers.first else { return false }
             provider.loadItem(forTypeIdentifier: "public.text", options: nil) { data, _ in
@@ -205,6 +218,7 @@ private struct SidebarItem: View {
     let count: Int
     let isActive: Bool
     let accentColor: Color
+    var showsLabel: Bool = true
     let action: () -> Void
 
     var body: some View {
@@ -213,20 +227,24 @@ private struct SidebarItem: View {
                 Image(systemName: icon)
                     .font(.system(size: 13))
                     .foregroundColor(isActive ? accentColor : .white.opacity(0.5))
-                Text(name)
-                    .font(.system(size: 12, weight: isActive ? .semibold : .regular))
-                    .foregroundColor(isActive ? .white : .white.opacity(0.7))
-                Spacer()
-                Text("\(count)")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundColor(isActive ? accentColor.opacity(0.7) : .white.opacity(0.4))
+                    .frame(maxWidth: showsLabel ? nil : .infinity)
+                if showsLabel {
+                    Text(name)
+                        .font(.system(size: 12, weight: isActive ? .semibold : .regular))
+                        .foregroundColor(isActive ? .white : .white.opacity(0.7))
+                    Spacer()
+                    Text("\(count)")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(isActive ? accentColor.opacity(0.7) : .white.opacity(0.4))
+                }
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, showsLabel ? 10 : 4)
             .padding(.vertical, 7)
             .background(isActive ? accentColor.opacity(0.12) : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 4)
+        .help(showsLabel ? "" : name)
     }
 }

@@ -6,12 +6,11 @@ import SwiftData
 @main
 struct StashApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @ObservedObject private var prefs = PreferencesStore.shared
 
     var body: some Scene {
         MenuBarExtra("Stash", image: "menu-icon", isInserted: Binding(
-            get: { prefs.showMenuBarIcon },
-            set: { prefs.showMenuBarIcon = $0 }
+            get: { UserDefaults.standard.bool(forKey: "showMenuBarIcon") },
+            set: { UserDefaults.standard.set($0, forKey: "showMenuBarIcon") }
         )) {
             MenuBarContent()
         }
@@ -162,12 +161,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func restorePreviousAppAndPaste() {
         let app = previousApp
+        let pid = app?.processIdentifier ?? 0
         panel.orderOut(nil)
+        NSApp.hide(nil)
         if let app = app {
             app.activate(options: .activateIgnoringOtherApps)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            PasteSimulator.simulatePaste()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            PasteSimulator.simulatePaste(to: pid)
         }
     }
 

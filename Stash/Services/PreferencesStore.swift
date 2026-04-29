@@ -85,17 +85,26 @@ final class PreferencesStore: ObservableObject {
 
         $cardDensity
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
-            .sink { UserDefaults.standard.set($0, forKey: "cardDensity") }
+            .sink {
+                UserDefaults.standard.set($0, forKey: "cardDensity")
+                NotificationCenter.default.post(name: NSNotification.Name("cardDensityDidChange"), object: nil)
+            }
             .store(in: &cancellables)
 
         $autoHideOnFocusLoss
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
-            .sink { UserDefaults.standard.set($0, forKey: "autoHideOnFocusLoss") }
+            .sink {
+                UserDefaults.standard.set($0, forKey: "autoHideOnFocusLoss")
+                NotificationCenter.default.post(name: NSNotification.Name("autoHideOnFocusLossDidChange"), object: nil)
+            }
             .store(in: &cancellables)
 
         $wallpaperTheme
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
-            .sink { UserDefaults.standard.set($0, forKey: "wallpaperTheme") }
+            .sink {
+                UserDefaults.standard.set($0, forKey: "wallpaperTheme")
+                NotificationCenter.default.post(name: NSNotification.Name("wallpaperThemeDidChange"), object: nil)
+            }
             .store(in: &cancellables)
 
         // Special handling for launchAtLogin SMAppService

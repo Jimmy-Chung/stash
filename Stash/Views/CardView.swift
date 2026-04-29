@@ -6,6 +6,7 @@ struct CardView: View {
     let index: Int
     var searchQuery: String = ""
     var cardSize: CGFloat = 268  // 默认值，由父视图传入
+    var pinColor: Color? = nil   // Color of the pinboard the clip is pinned to.
 
     @State private var isHovered = false
     @State private var appeared = false
@@ -90,11 +91,12 @@ struct CardView: View {
     // MARK: - Pinned Badge (CSS .card.pinned::before)
 
     private var pinnedBadge: some View {
-        ZStack {
+        let color = pinColor ?? accentColor
+        return ZStack {
             Circle()
-                .fill(accentColor.opacity(0.95))
+                .fill(color.opacity(0.95))
                 .frame(width: 18, height: 18)
-                .shadow(color: accentColor.opacity(0.4), radius: 4, y: 2)
+                .shadow(color: color.opacity(0.4), radius: 4, y: 2)
             Image(systemName: "pin.fill")
                 .font(.system(size: 7, weight: .bold))
                 .foregroundColor(.white)

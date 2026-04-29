@@ -10,13 +10,15 @@ struct GalleryView: View {
     @State private var editingClip: Clip?
     @State private var showDeleteConfirmation = false
     @State private var clipToDelete: Clip?
-    @ObservedObject private var prefs = PreferencesStore.shared
+    @State private var cardSize: CGFloat = 268
+    @State private var wallpaperTheme: Int = 0
+    @State private var sidebarShowsLabels: Bool = true
 
     private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
 
     var body: some View {
         HStack(spacing: 0) {
-            SidebarView(store: store)
+            SidebarView(store: store, showsLabels: $sidebarShowsLabels)
 
             Rectangle()
                 .fill(Color.white.opacity(0.06))
@@ -99,16 +101,32 @@ struct GalleryView: View {
                 editingClip = clip
             }
         }
+        .onAppear {
+            // Initialize local state from PreferencesStore
+            let prefs = PreferencesStore.shared
+            cardSize = prefs.density.cardWidth
+            wallpaperTheme = prefs.wallpaperTheme
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("cardDensityDidChange"))) { _ in
+            cardSize = PreferencesStore.shared.density.cardWidth
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("wallpaperThemeDidChange"))) { _ in
+            wallpaperTheme = PreferencesStore.shared.wallpaperTheme
+        }
     }
 
     // MARK: - Header (CSS .g-header: toolbar + search + pills in one row)
 
     private var header: some View {
         HStack(spacing: 10) {
-            // Toolbar group (CSS .toolbar-group)
+            // Toolbar group: left button → icon-only sidebar; right button → labels mode
             HStack(spacing: 2) {
-                toolbarIcon("sidebar.left")
-                toolbarIcon("square.grid.2x2")
+                toolbarButton("sidebar.left", isActive: !sidebarShowsLabels) {
+                    sidebarShowsLabels = false
+                }
+                toolbarButton("square.grid.2x2", isActive: sidebarShowsLabels) {
+                    sidebarShowsLabels = true
+                }
             }
             .padding(2)
             .background(Color.white.opacity(0.04))
@@ -161,13 +179,23 @@ struct GalleryView: View {
         )
     }
 
-    private func toolbarIcon(_ name: String) -> some View {
-        Image(systemName: name)
-            .font(.system(size: 12))
-            .foregroundColor(Color.white.opacity(0.78))
-            .frame(width: 28, height: 28)
-            .background(Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+    private func pinColor(for clip: Clip) -> Color? {
+        guard clip.isPinned, let pid = clip.pinboardId else { return nil }
+        guard let board = store.pinboards.first(where: { $0.id == pid }) else { return nil }
+        return Color(hex: board.accent)
+    }
+
+    private func toolbarButton(_ name: String, isActive: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: name)
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(isActive ? 0.95 : 0.62))
+                .frame(width: 28, height: 28)
+                .background(isActive ? Color.white.opacity(0.14) : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Search Field (CSS .search-wrap with focus glow)
@@ -276,7 +304,8 @@ struct GalleryView: View {
                                         isSelected: globalIdx == store.selectedIndex,
                                         index: globalIdx,
                                         searchQuery: store.searchText,
-                                        cardSize: PreferencesStore.shared.density.cardWidth
+                                        cardSize: cardSize,
+                                        pinColor: pinColor(for: clip)
                                     )
                                     .id(globalIdx)
                                     .onTapGesture {
@@ -435,7 +464,7 @@ struct GalleryView: View {
 
     private var wallpaperGradient: some View {
         Group {
-            switch prefs.wallpaperTheme {
+            switch wallpaperTheme {
             case 1: // Cool
                 ZStack {
                     RadialGradient(

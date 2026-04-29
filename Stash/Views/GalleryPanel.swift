@@ -10,6 +10,9 @@ final class GalleryPanel: NSPanel {
 
     private var keyMonitor: Any?
     private var isSpaceDown = false
+    private var autoHideOnFocusLoss: Bool = PreferencesStore.shared.autoHideOnFocusLoss
+
+    private var autoHideObserver: NSObjectProtocol?
 
     init(store: ClipboardStore) {
         self.store = store
@@ -49,6 +52,8 @@ final class GalleryPanel: NSPanel {
         ) { [weak self] _ in
             self?.focusSearchField()
         }
+
+        setupPreferenceObservers()
     }
 
     override var canBecomeKey: Bool { true }
@@ -56,9 +61,19 @@ final class GalleryPanel: NSPanel {
 
     override func resignKey() {
         super.resignKey()
-        if PreferencesStore.shared.autoHideOnFocusLoss {
+        if autoHideOnFocusLoss {
             removeKeyMonitor()
             orderOut(nil)
+        }
+    }
+
+    private func setupPreferenceObservers() {
+        autoHideObserver = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("autoHideOnFocusLossDidChange"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.autoHideOnFocusLoss = PreferencesStore.shared.autoHideOnFocusLoss
         }
     }
 
@@ -73,6 +88,9 @@ final class GalleryPanel: NSPanel {
         setFrame(NSRect(x: panelX, y: panelY, width: panelWidth, height: panelHeight), display: true)
         NSApp.activate(ignoringOtherApps: true)
         makeKeyAndOrderFront(nil)
+        // Don't auto-focus the search field on open — keyboard nav (←/→) should
+        // work immediately. User presses ⌘F or starts typing to enter search.
+        makeFirstResponder(nil)
         installKeyMonitor()
     }
 
@@ -116,10 +134,9 @@ final class GalleryPanel: NSPanel {
 
         if mods.contains(.command) {
             if let char = chars, let digit = Int(char), (1...9).contains(digit) {
-                if let clip = store.clip(at: digit - 1) {
-                    clip.writeToPasteboard()
-                    handleClose()
-                    PasteSimulator.simulatePaste()
+                if store.clip(at: digit - 1) != nil {
+                    store.selectedIndex = digit - 1
+                    handlePaste()
                 }
                 return true
             }
@@ -143,13 +160,25 @@ final class GalleryPanel: NSPanel {
             }
         }
 
-        // Esc always closes (also blurs textfield as side-effect)
+        // Esc: blur the search field if it's focused, otherwise close the panel
         if keyCode == 53 {
+            if editing {
+                makeFirstResponder(nil)
+                return true
+            }
             handleClose()
             return true
         }
 
-        // When typing in search/rename, let everything else through (Space, ←→, Backspace, Enter)
+        // ←/→ always navigate cards, even while the search field is focused.
+        // Editing the query with ←/→ inside the field is sacrificed for discoverability.
+        switch keyCode {
+        case 123: store.selectPrevious(); return true
+        case 124: store.selectNext(); return true
+        default: break
+        }
+
+        // When typing in search/rename, let everything else through (Space, Backspace, Enter)
         if editing { return false }
 
         if keyCode == 36 && mods.contains(.shift) {
@@ -162,8 +191,6 @@ final class GalleryPanel: NSPanel {
         }
 
         switch keyCode {
-        case 123: store.selectPrevious(); return true
-        case 124: store.selectNext(); return true
         case 49:
             if !isSpaceDown {
                 isSpaceDown = true
@@ -179,8 +206,27 @@ final class GalleryPanel: NSPanel {
                 }
             }
             return true
-        default: return false
+        default: break
         }
+
+        // Type-ahead: a printable character with no Command modifier focuses the
+        // search field and lets the same event flow through to insert the char.
+        if let s = chars, isPrintableForSearch(s) {
+            focusSearchField()
+            return false
+        }
+
+        return false
+    }
+
+    private func isPrintableForSearch(_ chars: String) -> Bool {
+        guard let scalar = chars.unicodeScalars.first else { return false }
+        let v = scalar.value
+        // Reject control chars (incl. Tab/Return/Backspace) and DEL.
+        if v < 0x20 || v == 0x7F { return false }
+        // Reject Cocoa function-key range (arrows, F1-F12, Home/End, etc.).
+        if v >= 0xF700 && v <= 0xF8FF { return false }
+        return true
     }
 
     private func handleKeyUp(_ event: NSEvent) -> Bool {

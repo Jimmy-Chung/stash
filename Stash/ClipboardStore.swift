@@ -36,6 +36,18 @@ final class ClipboardStore: ObservableObject {
         pinboards.sorted { $0.order < $1.order }
     }
 
+    static let pinboardPalette: [String] = [
+        "#F4A261", "#E76F51", "#2A9D8F", "#6C8EEF", "#8B5CF6",
+        "#06B6D4", "#F7B267", "#34D399", "#F472B6", "#94A3B8"
+    ]
+
+    private func nextPinboardColor() -> String {
+        let palette = Self.pinboardPalette
+        let used = Set(pinboards.map { $0.accent })
+        for color in palette where !used.contains(color) { return color }
+        return palette[pinboards.count % palette.count]
+    }
+
     private var modelContext: ModelContext
     private var lastContentHash: String?
     let searchService = SearchService()
@@ -171,7 +183,8 @@ final class ClipboardStore: ObservableObject {
 
     func createPinboard(name: String, icon: String = "folder") {
         let order = pinboards.count
-        let board = Pinboard(name: name, icon: icon, order: order)
+        let accent = nextPinboardColor()
+        let board = Pinboard(name: name, icon: icon, accent: accent, order: order)
         modelContext.insert(board)
         do {
             try modelContext.save()
@@ -256,8 +269,23 @@ final class ClipboardStore: ObservableObject {
         let boardDescriptor = FetchDescriptor<Pinboard>(sortBy: [SortDescriptor(\.order)])
         pinboards = (try? modelContext.fetch(boardDescriptor)) ?? []
 
+        backfillPinboardColorsIfNeeded()
+
         if let first = clips.first {
             lastContentHash = first.contentHash
         }
+    }
+
+    private func backfillPinboardColorsIfNeeded() {
+        guard pinboards.count > 1 else { return }
+        // Detect duplicate colors (e.g. legacy boards all using the default accent).
+        let colors = pinboards.map { $0.accent }
+        guard Set(colors).count != colors.count else { return }
+        let palette = Self.pinboardPalette
+        let sorted = pinboards.sorted { $0.order < $1.order }
+        for (idx, board) in sorted.enumerated() {
+            board.accent = palette[idx % palette.count]
+        }
+        try? modelContext.save()
     }
 }

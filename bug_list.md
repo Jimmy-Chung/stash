@@ -71,3 +71,10 @@ Bug ID 自增，每条关联测试用例和功能项。状态：`open` / `fixed`
 | BUG-004R | Space 键修过头：handleKey 无条件吞 Space，搜索框/rename 输入框打不出空格。补 isEditingTextField 判断后放行 | F-25 | UI-09 | fixed |
 | BUG-014R | menu-icon.imageset 加了但 MenuBarExtra 仍用 systemImage，资源未生效 | F-46 | M-29 | fixed |
 | BUG-011R | rename 焦点时序：editingPinboard 与 isEditingFocused 同步设置，TextField 还没渲染 focus 落空。改 DispatchQueue.main.async | F-30 | - | fixed |
+
+## v0.5.0 第四轮（交互打磨 + 粘贴修复）
+
+| Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
+|---|---|---|---|---|
+| BUG-025 | 粘贴不回前台应用：选中卡片按 Enter 后内容写入剪贴板，但未粘贴回前台应用输入框。根因：未释放 Stash 焦点 + 未按 PID 发送 CGEvent | F-12 | M-08 | fixed |
+| BUG-026 | ⌘1-9 快捷粘贴未激活前台应用：直接调 PasteSimulator.simulatePaste()，没有关闭面板、没有激活前台应用、没有延迟 | F-11 | UI-04 | fixed |
