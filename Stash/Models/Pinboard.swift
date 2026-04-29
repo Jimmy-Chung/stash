@@ -9,7 +9,7 @@ final class Pinboard {
     var accent: String
     var order: Int
 
-    init(name: String, icon: String = "folder", accent: String = "#F4A261", order: Int = 0) {
+    init(name: String, icon: String = "folder", accent: String = "#7870F2", order: Int = 0) {
         self.id = UUID()
         self.name = name
         self.icon = icon

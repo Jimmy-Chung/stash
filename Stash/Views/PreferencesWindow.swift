@@ -6,7 +6,7 @@ import AppKit
 struct PreferencesRootView: View {
     @State private var selectedTab = 0
 
-    private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
+    private let accentColor = Color(red: 120/255, green: 112/255, blue: 242/255)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -72,7 +72,7 @@ struct PreferencesRootView: View {
                     RoundedRectangle(cornerRadius: 7)
                         .fill(
                             LinearGradient(
-                                colors: [accentColor, Color(red: 231/255, green: 111/255, blue: 81/255)],
+                                colors: [accentColor, Color(red: 80/255, green: 72/255, blue: 217/255)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -204,7 +204,7 @@ struct ShortcutsTabContent: View {
         }
     }
 
-    private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
+    private let accentColor = Color(red: 120/255, green: 112/255, blue: 242/255)
 
     private func shortcutRow(_ keys: String, _ desc: String) -> some View {
         HStack {

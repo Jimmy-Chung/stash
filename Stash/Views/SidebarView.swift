@@ -11,7 +11,7 @@ struct SidebarView: View {
     @FocusState private var isEditingFocused: Bool
     @FocusState private var isNewPinboardFocused: Bool
 
-    private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
+    private let accentColor = Color(red: 120/255, green: 112/255, blue: 242/255)
 
     var body: some View {
         VStack(spacing: 0) {
