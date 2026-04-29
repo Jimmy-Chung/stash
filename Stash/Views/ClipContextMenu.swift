@@ -21,27 +21,34 @@ struct ClipContextMenu: View {
 
             Divider()
 
-            Button(clip.isPinned ? "Unpin" : "Pin") {
-                store.togglePin(clip)
-            }
-
             if !store.pinboards.isEmpty {
-                Menu("Move to Pinboard") {
-                    Button("Remove from Pinboard") {
-                        store.moveClipToPinboard(clip, pinboardId: nil)
-                    }
-                    Divider()
+                Menu("Pin") {
                     ForEach(store.sortedPinboards) { board in
+                        let isCurrent = clip.pinboardId == board.id && clip.isPinned
                         Button(action: {
-                            store.moveClipToPinboard(clip, pinboardId: board.id)
+                            store.pinToPinboard(clip, pinboardId: board.id)
                         }) {
                             Label {
-                                Text(board.name)
+                                Text(board.name + (isCurrent ? " ✓" : ""))
                             } icon: {
                                 Image(nsImage: Self.coloredDot(hex: board.accent))
                             }
                         }
                     }
+                    Divider()
+                    Button("Create Pinboard") {
+                        store.createPinboardAndPin(clip: clip)
+                    }
+                    if clip.isPinned {
+                        Divider()
+                        Button("Unpin") {
+                            store.unpin(clip)
+                        }
+                    }
+                }
+            } else {
+                Button(clip.isPinned ? "Unpin" : "Pin") {
+                    store.togglePin(clip)
                 }
             }
 

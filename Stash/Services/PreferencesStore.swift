@@ -23,9 +23,6 @@ final class PreferencesStore: ObservableObject {
     // Behavior
     @Published var autoHideOnFocusLoss: Bool = true
 
-    // Wallpaper Theme
-    @Published var wallpaperTheme: Int = 0
-
     private var cancellables = Set<AnyCancellable>()
 
     init() {
@@ -40,8 +37,6 @@ final class PreferencesStore: ObservableObject {
         self.blurAmount = UserDefaults.standard.object(forKey: "blurAmount") as? Double ?? 50.0
         self.cardDensity = UserDefaults.standard.object(forKey: "cardDensity") as? Int ?? 1
         self.autoHideOnFocusLoss = UserDefaults.standard.object(forKey: "autoHideOnFocusLoss") as? Bool ?? true
-        self.wallpaperTheme = UserDefaults.standard.object(forKey: "wallpaperTheme") as? Int ?? 0
-
         // Debounced save to UserDefaults (saves 0.5s after last change)
         $launchAtLogin
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
@@ -75,12 +70,18 @@ final class PreferencesStore: ObservableObject {
 
         $appearanceMode
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
-            .sink { UserDefaults.standard.set($0, forKey: "appearanceMode") }
+            .sink {
+                UserDefaults.standard.set($0, forKey: "appearanceMode")
+                NotificationCenter.default.post(name: NSNotification.Name("appearanceModeDidChange"), object: nil)
+            }
             .store(in: &cancellables)
 
         $blurAmount
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
-            .sink { UserDefaults.standard.set($0, forKey: "blurAmount") }
+            .sink {
+                UserDefaults.standard.set($0, forKey: "blurAmount")
+                NotificationCenter.default.post(name: NSNotification.Name("blurAmountDidChange"), object: nil)
+            }
             .store(in: &cancellables)
 
         $cardDensity
@@ -96,14 +97,6 @@ final class PreferencesStore: ObservableObject {
             .sink {
                 UserDefaults.standard.set($0, forKey: "autoHideOnFocusLoss")
                 NotificationCenter.default.post(name: NSNotification.Name("autoHideOnFocusLossDidChange"), object: nil)
-            }
-            .store(in: &cancellables)
-
-        $wallpaperTheme
-            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
-            .sink {
-                UserDefaults.standard.set($0, forKey: "wallpaperTheme")
-                NotificationCenter.default.post(name: NSNotification.Name("wallpaperThemeDidChange"), object: nil)
             }
             .store(in: &cancellables)
 
@@ -165,5 +158,13 @@ final class PreferencesStore: ObservableObject {
 
     var appearance: AppearanceMode {
         AppearanceMode(rawValue: appearanceMode) ?? .system
+    }
+
+    var blurLevel: Int {
+        switch Int(blurAmount) {
+        case ...30: return 0
+        case 61...: return 2
+        default: return 1
+        }
     }
 }

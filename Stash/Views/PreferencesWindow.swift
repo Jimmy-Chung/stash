@@ -10,8 +10,9 @@ struct PreferencesRootView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Titlebar spacer (traffic lights area)
+            // Titlebar spacer with padding for traffic lights
             HStack {
+                Color.clear.frame(width: 72)
                 Spacer()
             }
             .frame(height: 38)
@@ -49,18 +50,12 @@ struct PreferencesRootView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: 720, height: 540)
-        .background(
-            ZStack {
-                Color(red: 40/255, green: 40/255, blue: 44/255).opacity(0.82)
-                    .background(.ultraThinMaterial)
-            }
-        )
+        .background(Color(red: 40/255, green: 40/255, blue: 44/255))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(0.6), radius: 40, y: 20)
     }
 
     private func tabButton(index: Int, icon: String, label: String) -> some View {
@@ -300,13 +295,6 @@ struct AppearanceTabContent: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                prefsRow("Theme", help: "Choose light, dark, or follow your system setting") {
-                    prefsPicker(selection: $prefs.appearanceMode) {
-                        Text("Follow System").tag(0)
-                        Text("Light").tag(1)
-                        Text("Dark").tag(2)
-                    }
-                }
                 prefsRow("Glass Blur Amount", help: "Adjust the blur intensity of the glass panel") {
                     HStack(spacing: 10) {
                         Slider(value: $localBlurAmount, in: 10...80, step: 5)
@@ -325,13 +313,6 @@ struct AppearanceTabContent: View {
                         Text("Compact").tag(0)
                         Text("Default").tag(1)
                         Text("Cozy").tag(2)
-                    }
-                }
-                prefsRow("Wallpaper Theme", help: "Change the background gradient style") {
-                    prefsPicker(selection: $prefs.wallpaperTheme) {
-                        Text("Warm").tag(0)
-                        Text("Cool").tag(1)
-                        Text("Mono").tag(2)
                     }
                 }
             }

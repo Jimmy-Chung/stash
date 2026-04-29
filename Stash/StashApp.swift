@@ -20,7 +20,7 @@ struct StashApp: App {
 struct MenuBarContent: View {
     var body: some View {
         Button("Preferences...") {
-            (NSApp.delegate as? AppDelegate)?.showPreferences()
+            NotificationCenter.default.post(name: .stashOpenPreferences, object: nil)
         }
         .keyboardShortcut(",", modifiers: .command)
         Divider()
@@ -45,7 +45,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             modelContainer = try ModelContainer(for: Clip.self, Pinboard.self)
         } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
+            NSLog("[Stash] ModelContainer creation failed: \(error). Resetting database.")
+            // Delete corrupted/incompatible database and retry
+            let url = NSPersistentContainer.defaultDirectoryURL().appendingPathComponent("default.store")
+            try? FileManager.default.removeItem(at: url)
+            do {
+                modelContainer = try ModelContainer(for: Clip.self, Pinboard.self)
+            } catch {
+                fatalError("Failed to create ModelContainer after reset: \(error)")
+            }
         }
         let context = modelContainer.mainContext
         store = ClipboardStore(modelContext: context)
@@ -95,6 +103,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if !isTesting {
             DispatchQueue.main.async {
                 if !AccessibilityChecker.isTrusted {
+                    self.showPreferences()
                     let alert = NSAlert()
                     alert.messageText = "Stash Needs Accessibility Access"
                     alert.informativeText = "Stash requires Accessibility permission to simulate paste (\u{2318}V).\n\nClick OK to open System Settings, then enable Stash under Privacy > Accessibility."
@@ -119,9 +128,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func showPreferences() {
+        NSApp.activate(ignoringOtherApps: true)
         if let window = preferencesWindow, window.isVisible {
             window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
             return
         }
 
@@ -136,11 +145,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
-        window.backgroundColor = .clear
-        window.isOpaque = false
+        window.backgroundColor = NSColor(red: 40/255, green: 40/255, blue: 44/255, alpha: 1)
         window.contentViewController = hostingController
 
         self.preferencesWindow = window
+        window.appearance = NSAppearance(named: .darkAqua)
         panel.orderOut(nil)
         NSApp.activate(ignoringOtherApps: true)
         window.center()

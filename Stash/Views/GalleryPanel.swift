@@ -13,6 +13,8 @@ final class GalleryPanel: NSPanel {
     private var autoHideOnFocusLoss: Bool = PreferencesStore.shared.autoHideOnFocusLoss
 
     private var autoHideObserver: NSObjectProtocol?
+    private var appearanceObserver: NSObjectProtocol?
+    private var isPinPickerVisible = false
 
     init(store: ClipboardStore) {
         self.store = store
@@ -54,6 +56,7 @@ final class GalleryPanel: NSPanel {
         }
 
         setupPreferenceObservers()
+        applyAppearance()
     }
 
     override var canBecomeKey: Bool { true }
@@ -61,7 +64,7 @@ final class GalleryPanel: NSPanel {
 
     override func resignKey() {
         super.resignKey()
-        if autoHideOnFocusLoss {
+        if autoHideOnFocusLoss && !isSpaceDown {
             removeKeyMonitor()
             orderOut(nil)
         }
@@ -74,6 +77,28 @@ final class GalleryPanel: NSPanel {
             queue: .main
         ) { [weak self] _ in
             self?.autoHideOnFocusLoss = PreferencesStore.shared.autoHideOnFocusLoss
+        }
+        appearanceObserver = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("appearanceModeDidChange"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.applyAppearance()
+        }
+        NotificationCenter.default.addObserver(
+            forName: .stashPinPickerStateChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.isPinPickerVisible = notification.userInfo?["visible"] as? Bool ?? false
+        }
+    }
+
+    private func applyAppearance() {
+        switch PreferencesStore.shared.appearance {
+        case .light: appearance = NSAppearance(named: .darkAqua)
+        case .dark: appearance = NSAppearance(named: .darkAqua)
+        default: appearance = NSAppearance(named: .darkAqua)
         }
     }
 
@@ -132,8 +157,24 @@ final class GalleryPanel: NSPanel {
         let chars = event.charactersIgnoringModifiers
         let editing = isEditingTextField
 
+        // Pin picker keyboard navigation
+        if isPinPickerVisible {
+            switch keyCode {
+            case 125: NotificationCenter.default.post(name: .stashPinPickerDown, object: nil); return true
+            case 126: NotificationCenter.default.post(name: .stashPinPickerUp, object: nil); return true
+            case 36: NotificationCenter.default.post(name: .stashPinPickerSelect, object: nil); return true
+            case 53: NotificationCenter.default.post(name: .stashPinPickerCancel, object: nil); return true
+            default:
+                if let digit = Int(chars ?? ""), (1...9).contains(digit), digit <= store.sortedPinboards.count {
+                    NotificationCenter.default.post(name: .stashPinPickerDigit, object: nil, userInfo: ["index": digit - 1])
+                    return true
+                }
+                return false
+            }
+        }
+
         if mods.contains(.command) {
-            if let char = chars, let digit = Int(char), (1...9).contains(digit) {
+            if let digit = digitFromEvent(chars: chars, keyCode: keyCode), (1...9).contains(digit) {
                 if store.clip(at: digit - 1) != nil {
                     store.selectedIndex = digit - 1
                     handlePaste()
@@ -142,7 +183,7 @@ final class GalleryPanel: NSPanel {
             }
             switch chars {
             case "p":
-                NotificationCenter.default.post(name: .stashTogglePin, object: nil)
+                NotificationCenter.default.post(name: .stashShowPinPicker, object: nil)
                 return true
             case "e":
                 NotificationCenter.default.post(name: .stashEditClip, object: nil)
@@ -173,8 +214,8 @@ final class GalleryPanel: NSPanel {
         // ←/→ always navigate cards, even while the search field is focused.
         // Editing the query with ←/→ inside the field is sacrificed for discoverability.
         switch keyCode {
-        case 123: store.selectPrevious(); return true
-        case 124: store.selectNext(); return true
+        case 123: store.selectPrevious(); NotificationCenter.default.post(name: .stashKeyboardScroll, object: nil); return true
+        case 124: store.selectNext(); NotificationCenter.default.post(name: .stashKeyboardScroll, object: nil); return true
         default: break
         }
 
@@ -217,6 +258,18 @@ final class GalleryPanel: NSPanel {
         }
 
         return false
+    }
+
+    private func digitFromEvent(chars: String?, keyCode: UInt16) -> Int? {
+        if let char = chars, let digit = Int(char), (1...9).contains(digit) {
+            return digit
+        }
+        let digitKeyCodes: [UInt16] = [18, 19, 20, 21, 23, 22, 26, 28, 25]
+        if let idx = digitKeyCodes.firstIndex(of: keyCode) {
+            return idx + 1
+        }
+        NSLog("[HotKey] digitFromEvent: chars=%@ keyCode=%d — no match", chars ?? "nil", keyCode)
+        return nil
     }
 
     private func isPrintableForSearch(_ chars: String) -> Bool {
@@ -282,4 +335,12 @@ extension Notification.Name {
     static let stashOpenPreferences = Notification.Name("stashOpenPreferences")
     static let stashFocusSearch = Notification.Name("stashFocusSearch")
     static let stashHotkeyChanged = Notification.Name("stashHotkeyChanged")
+    static let stashKeyboardScroll = Notification.Name("stashKeyboardScroll")
+    static let stashShowPinPicker = Notification.Name("stashShowPinPicker")
+    static let stashPinPickerStateChanged = Notification.Name("stashPinPickerStateChanged")
+    static let stashPinPickerUp = Notification.Name("stashPinPickerUp")
+    static let stashPinPickerDown = Notification.Name("stashPinPickerDown")
+    static let stashPinPickerSelect = Notification.Name("stashPinPickerSelect")
+    static let stashPinPickerCancel = Notification.Name("stashPinPickerCancel")
+    static let stashPinPickerDigit = Notification.Name("stashPinPickerDigit")
 }
