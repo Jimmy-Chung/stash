@@ -26,6 +26,10 @@
   - `tweaks-panel.jsx` — Claude Design 编辑模式控件(实施时不需要,可忽略)
   - `uploads/` — 用户在设计期间的圈注截图(PNG)
 
+## 规则
+
+- 每次发版时，Preferences（设置页）底部必须显示当前版本号（如 `v0.5.0`），从 `Info.plist` 的 `CFBundleShortVersionString` 读取。
+
 ## 当前状态
 
 - v0.1 ~ v0.4 已完成并合并 master (tag v0.4.1)

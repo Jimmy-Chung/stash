@@ -168,6 +168,38 @@
 
 ---
 
+## v0.6 验证矩阵
+
+### 单元测试
+
+| ID | Suite | Case | 关联 |
+| --- | --- | --- | --- |
+| U-41 | CardDisplayTests | 卡片渲染后不包含分秒时间文本 | F-54 |
+| U-42 | CardDisplayTests | 卡片渲染后不包含日期文本 | F-55 |
+| U-43 | SortOrderTests | pinned + unpinned 混合列表 → 全部按 copiedAt 降序，pinned 不前置 | F-56 |
+| U-44 | SortOrderTests | 选择 Pinboard → 该 Pinboard 内 clips 按 copiedAt 降序 | F-56 |
+| U-45 | SortOrderTests | pinned clip 排在时间更新的 unpinned clip 之后 | F-56 |
+
+### UI 自动化
+
+| ID | Case | 关联 |
+| --- | --- | --- |
+| UI-25 | 卡片截图/文本抓取 → 无 "Just now"/"Today"/日期/分秒文本 | F-54, F-55 |
+| UI-26 | 5 条 clips(第 3 条 pinned)→ 按 copiedAt 排列，pinned 项不在首位 | F-56 |
+| UI-27 | 屏幕容纳 4 张卡片 → 按 → 到第 5 张 → 第 5 张可见 | F-57 |
+| UI-28 | 双击卡片 → paste 桥接函数被调用（与 Enter 行为一致） | F-58 |
+
+### 手工集成验证
+
+- [ ] **M-30** 视觉确认：所有卡片上下无日期/时间文字，仅显示类型图标和内容 [F-54, F-55]
+- [ ] **M-31** 复制 5 段文字 → pin 第 3 段 → pin 的卡片仍按时间顺序排列，不跳到最前 [F-56]
+- [ ] **M-32** 选择 Pinboard → 该 Pinboard 下 pinned 卡片按复制时间排列 [F-56]
+- [ ] **M-33** 屏幕容纳 6 张卡片 → 按 → 连续到第 7-10 张 → 画面自动滚动跟随选中卡片 [F-57]
+- [ ] **M-34** 屏幕容纳 6 张卡片 → 按 ← 从第 1 张连续退回 → 滚动不抖动 [F-57]
+- [ ] **M-35** 鼠标双击卡片 → 面板关闭 → 内容粘贴到前台应用输入框 [F-58]
+
+---
+
 ## 全局回归(每版都跑一次)
 
 每个版本完成后,除了本版 checklist,还要跑这套通用回归:

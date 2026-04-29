@@ -49,15 +49,18 @@ final class PinboardTests: XCTestCase {
         XCTAssertNil(store.clips.first?.pinnedAt)
     }
 
-    func testPinnedSortFirst() {
-        let clip1 = Clip(type: .text, textContent: "unpinned", contentHash: "h1")
-        let clip2 = Clip(type: .text, textContent: "pinned", contentHash: "h2")
-        clip2.pinnedAt = Date()
+    func testPinnedSortByTimeOnly() {
+        // F-56: pinned items sort by createdAt, not pinned-first
+        let clip1 = Clip(type: .text, textContent: "pinned", contentHash: "h1")
+        clip1.pinnedAt = Date()
+        let clip2 = Clip(type: .text, textContent: "unpinned", contentHash: "h2")
         store.clips = [clip1, clip2]
 
         let displayed = store.displayClips
-        XCTAssertEqual(displayed.first?.textContent, "pinned")
-        XCTAssertEqual(displayed.last?.textContent, "unpinned")
+        // Both created almost simultaneously; order is by createdAt desc
+        // clip2 created after clip1, so clip2 should be first
+        XCTAssertEqual(displayed.first?.textContent, "unpinned")
+        XCTAssertEqual(displayed.last?.textContent, "pinned")
     }
 
     func testRenamePinboard() {

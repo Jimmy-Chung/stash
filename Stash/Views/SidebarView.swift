@@ -128,7 +128,6 @@ struct SidebarView: View {
                 Image(systemName: "circle.fill")
                     .font(.system(size: 10))
                     .foregroundColor(isActive ? boardColor : boardColor.opacity(0.85))
-                    .frame(maxWidth: showsLabels ? nil : .infinity)
 
                 if showsLabels {
                     if editingPinboard?.id == board.id {
@@ -153,10 +152,12 @@ struct SidebarView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, showsLabels ? 10 : 4)
             .padding(.vertical, 6)
             .background(isActive ? boardColor.opacity(0.16) : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 6))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help(showsLabels ? "" : board.name)

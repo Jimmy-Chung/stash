@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct CardView: View {
     let clip: Clip
@@ -13,10 +14,23 @@ struct CardView: View {
 
     private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
 
+    private var footerHeight: CGFloat { 38 }
+
     var body: some View {
         VStack(spacing: 0) {
             cardBody
+                .frame(width: cardSize, height: cardSize - footerHeight)
+                .clipped()
             cardFooter
+                .frame(width: cardSize, height: footerHeight)
+                .background(Color.black.opacity(0.18))
+                .overlay(
+                    Rectangle()
+                        .fill(Color.white.opacity(0.07))
+                        .frame(height: 0.5),
+                    alignment: .top
+                )
+                .clipped()
         }
         .frame(width: cardSize, height: cardSize)
         .background(
@@ -36,7 +50,7 @@ struct CardView: View {
         .animation(.easeInOut(duration: 0.22), value: isHovered)
         .animation(.easeOut(duration: 0.36), value: appeared)
         .overlay(alignment: .topTrailing) {
-            if clip.isPinned {
+            if pinColor != nil {
                 pinnedBadge
             }
         }
@@ -51,6 +65,7 @@ struct CardView: View {
         .onHover { hovering in
             isHovered = hovering
         }
+        .contentShape(Rectangle())
         .onAppear {
             appeared = true
         }
@@ -200,8 +215,9 @@ struct CardView: View {
                         )
                 }
             }
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 9))
 
             HStack {
                 if let colors = clip.dominantColors, !colors.isEmpty {
@@ -442,43 +458,71 @@ struct CardView: View {
         .padding(EdgeInsets(top: 18, leading: 16, bottom: 12, trailing: 16))
     }
 
-    // MARK: - Card Footer (CSS .card-footer with app-chip + dot-sep)
+    // MARK: - Card Footer (app icon + relative timestamp)
 
     private var cardFooter: some View {
         HStack(spacing: 8) {
             if let app = clip.sourceApp {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(accentColor)
-                        .frame(width: 6, height: 6)
+                HStack(spacing: 5) {
+                    Image(nsImage: appIcon(for: app))
+                        .resizable()
+                        .frame(width: 14, height: 14)
                     Text(app)
                         .font(.system(size: 11.5, weight: .medium))
                         .foregroundColor(.white.opacity(0.85))
+                        .lineLimit(1)
                 }
             }
 
             Spacer()
 
-            if clip.sourceApp != nil {
-                Circle()
-                    .fill(Color.white.opacity(0.3))
-                    .frame(width: 2, height: 2)
-            }
-
-            Text(clip.createdAt, style: .relative)
-                .font(.system(size: 11.5))
-                .foregroundColor(.white.opacity(0.6))
-                .monospacedDigit()
+            Text(relativeTimeString(for: clip.createdAt))
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundColor(.white.opacity(0.55))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color.black.opacity(0.18))
-        .overlay(
-            Rectangle()
-                .fill(Color.white.opacity(0.07))
-                .frame(height: 0.5),
-            alignment: .top
-        )
+    }
+
+    private func appIcon(for appName: String) -> NSImage {
+        for app in NSWorkspace.shared.runningApplications {
+            if app.localizedName == appName, let icon = app.icon {
+                return icon
+            }
+        }
+        let path = "/Applications/\(appName).app"
+        if FileManager.default.fileExists(atPath: path) {
+            return NSWorkspace.shared.icon(forFile: path)
+        }
+        let systemPath = "/System/Applications/\(appName).app"
+        if FileManager.default.fileExists(atPath: systemPath) {
+            return NSWorkspace.shared.icon(forFile: systemPath)
+        }
+        return NSWorkspace.shared.icon(forFileType: "public.generic-application")
+    }
+
+    private func relativeTimeString(for date: Date) -> String {
+        let now = Date()
+        let calendar = Calendar.current
+        let interval = now.timeIntervalSince(date)
+
+        if calendar.isDateInToday(date) {
+            if interval < 60 { return "刚刚" }
+            if interval < 3600 {
+                let mins = Int(interval / 60)
+                return "\(mins)分钟前"
+            }
+            let hours = Int(interval / 3600)
+            let remainingMins = Int((interval.truncatingRemainder(dividingBy: 3600)) / 60)
+            if remainingMins > 0 {
+                return "\(hours)小时\(remainingMins)分钟前"
+            }
+            return "\(hours)小时前"
+        }
+
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: date), to: calendar.startOfDay(for: now)).day ?? 0
+        if days == 1 { return "1天前" }
+        return "\(days)天前"
     }
 }
 

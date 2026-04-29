@@ -11,8 +11,10 @@ struct GalleryView: View {
     @State private var showDeleteConfirmation = false
     @State private var clipToDelete: Clip?
     @State private var cardSize: CGFloat = 268
-    @State private var wallpaperTheme: Int = 0
+    @State private var blurLevel: Int = 1
     @State private var sidebarShowsLabels: Bool = true
+    @State private var showPinPicker = false
+    @State private var pinPickerIndex = 0
 
     private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
 
@@ -33,35 +35,25 @@ struct GalleryView: View {
                 }
                 galleryFooter
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(
-            ZStack {
-                wallpaperGradient
-                Color(red: 28/255, green: 28/255, blue: 32/255).opacity(0.35)
-                    .background(.ultraThinMaterial)
+        .modifier(PanelAppearanceModifier(blurLevel: blurLevel))
+        .overlay(alignment: .bottom) {
+            if isQuickLooking {
+                quickLookView
+                    .clipShape(RoundedRectangle(cornerRadius: 22))
+                    .frame(maxWidth: .infinity, alignment: .bottom)
             }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22)
-                .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.55), radius: 40, y: 24)
-        .overlay(
-            // Inset top highlight (CSS inset 0 1px 0 rgba(255,255,255,0.08))
-            RoundedRectangle(cornerRadius: 22)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
-                .mask(
-                    Rectangle()
-                        .frame(height: 1)
-                        .frame(maxHeight: .infinity, alignment: .top)
-                )
-        )
-        .sheet(isPresented: $isQuickLooking) {
-            quickLookView
         }
-        .sheet(item: $editingClip) { clip in
-            EditClipView(clip: clip, store: store)
+        .overlay {
+            if showPinPicker {
+                pinPickerOverlay
+            }
+        }
+        .overlay {
+            if let clip = editingClip {
+                editOverlay(clip: clip)
+            }
         }
         .alert("Delete Pinned Item?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) { clipToDelete = nil }
@@ -101,17 +93,54 @@ struct GalleryView: View {
                 editingClip = clip
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .stashShowPinPicker)) { _ in
+            if store.clip(at: store.selectedIndex) != nil {
+                if store.pinboards.isEmpty {
+                    if let clip = store.clip(at: store.selectedIndex) {
+                        store.togglePin(clip)
+                    }
+                } else {
+                    pinPickerIndex = 0
+                    showPinPicker = true
+                    NotificationCenter.default.post(name: .stashPinPickerStateChanged, object: nil, userInfo: ["visible": true])
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .stashPinPickerUp)) { _ in
+            guard showPinPicker else { return }
+            let total = pinPickerTotal
+            if pinPickerIndex > 0 { pinPickerIndex -= 1 }
+            else { pinPickerIndex = total - 1 }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .stashPinPickerDown)) { _ in
+            guard showPinPicker else { return }
+            let total = pinPickerTotal
+            if pinPickerIndex < total - 1 { pinPickerIndex += 1 }
+            else { pinPickerIndex = 0 }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .stashPinPickerSelect)) { _ in
+            guard showPinPicker else { return }
+            executePinPickerSelection()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .stashPinPickerCancel)) { _ in
+            showPinPicker = false
+            NotificationCenter.default.post(name: .stashPinPickerStateChanged, object: nil, userInfo: ["visible": false])
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .stashPinPickerDigit)) { notification in
+            guard showPinPicker, let idx = notification.userInfo?["index"] as? Int else { return }
+            pinPickerIndex = idx
+            executePinPickerSelection()
+        }
         .onAppear {
-            // Initialize local state from PreferencesStore
             let prefs = PreferencesStore.shared
             cardSize = prefs.density.cardWidth
-            wallpaperTheme = prefs.wallpaperTheme
+            blurLevel = prefs.blurLevel
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("cardDensityDidChange"))) { _ in
             cardSize = PreferencesStore.shared.density.cardWidth
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("wallpaperThemeDidChange"))) { _ in
-            wallpaperTheme = PreferencesStore.shared.wallpaperTheme
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("blurAmountDidChange"))) { _ in
+            blurLevel = PreferencesStore.shared.blurLevel
         }
     }
 
@@ -183,6 +212,30 @@ struct GalleryView: View {
         guard clip.isPinned, let pid = clip.pinboardId else { return nil }
         guard let board = store.pinboards.first(where: { $0.id == pid }) else { return nil }
         return Color(hex: board.accent)
+    }
+
+    private var pinPickerTotal: Int {
+        let boards = store.sortedPinboards.count
+        let hasUnpin = store.clip(at: store.selectedIndex)?.isPinned == true
+        return boards + 1 + (hasUnpin ? 1 : 0)  // +1 for Create Pinboard
+    }
+
+    private func executePinPickerSelection() {
+        let boards = store.sortedPinboards
+        guard let clip = store.clip(at: store.selectedIndex) else {
+            showPinPicker = false
+            NotificationCenter.default.post(name: .stashPinPickerStateChanged, object: nil, userInfo: ["visible": false])
+            return
+        }
+        if pinPickerIndex < boards.count {
+            store.pinToPinboard(clip, pinboardId: boards[pinPickerIndex].id)
+        } else if pinPickerIndex == boards.count {
+            store.createPinboardAndPin(clip: clip)
+        } else if clip.isPinned {
+            store.unpin(clip)
+        }
+        showPinPicker = false
+        NotificationCenter.default.post(name: .stashPinPickerStateChanged, object: nil, userInfo: ["visible": false])
     }
 
     private func toolbarButton(_ name: String, isActive: Bool, action: @escaping () -> Void) -> some View {
@@ -286,48 +339,56 @@ struct GalleryView: View {
 
     private var carouselSection: some View {
         ZStack {
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 14) {
-                    let groups = TimeGrouper.groupClips(store.displayClips)
-                    ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(group.0.rawValue)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.45))
-                                .padding(.leading, 8)
-
-                            HStack(spacing: 14) {
-                                ForEach(Array(group.1.enumerated()), id: \.element.id) { _, clip in
-                                    let globalIdx = store.displayClips.firstIndex(where: { $0.id == clip.id }) ?? 0
-                                    CardView(
-                                        clip: clip,
-                                        isSelected: globalIdx == store.selectedIndex,
-                                        index: globalIdx,
-                                        searchQuery: store.searchText,
-                                        cardSize: cardSize,
-                                        pinColor: pinColor(for: clip)
-                                    )
-                                    .id(globalIdx)
-                                    .onTapGesture {
-                                        DispatchQueue.main.async {
-                                            store.selectedIndex = globalIdx
-                                        }
-                                    }
-                                    .contextMenu {
-                                        ClipContextMenu(
-                                            clip: clip,
-                                            store: store,
-                                            onPaste: onPaste,
-                                            onEdit: { editingClip = clip }
-                                        )
-                                    }
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 14) {
+                        ForEach(Array(store.displayClips.enumerated()), id: \.element.id) { idx, clip in
+                            CardView(
+                                clip: clip,
+                                isSelected: idx == store.selectedIndex,
+                                index: idx,
+                                searchQuery: store.searchText,
+                                cardSize: cardSize,
+                                pinColor: pinColor(for: clip)
+                            )
+                            .id(clip.id)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                DispatchQueue.main.async {
+                                    store.selectedIndex = idx
                                 }
+                            }
+                            .simultaneousGesture(
+                                TapGesture(count: 2).onEnded {
+                                    DispatchQueue.main.async {
+                                        store.selectedIndex = idx
+                                    }
+                                    onPaste()
+                                }
+                            )
+                            .contextMenu {
+                                ClipContextMenu(
+                                    clip: clip,
+                                    store: store,
+                                    onPaste: onPaste,
+                                    onEdit: { editingClip = clip }
+                                )
                             }
                         }
                     }
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 18)
                 }
-                .padding(.horizontal, 22)
-                .padding(.vertical, 18)
+                .onChange(of: store.selectedIndex) { newIndex in
+                    // Auto-scroll only for keyboard navigation, not clicks
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .stashKeyboardScroll)) { _ in
+                    let idx = store.selectedIndex
+                    guard idx >= 0, idx < store.displayClips.count else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        proxy.scrollTo(store.displayClips[idx].id, anchor: .leading)
+                    }
+                }
             }
 
             // Edge fades (CSS .carousel-wrap::before/after)
@@ -356,15 +417,79 @@ struct GalleryView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 10) {
-            Text(store.searchText.isEmpty ? "\u{1F4CB}" : "\u{1F50D}")
-                .font(.system(size: 36))
-                .opacity(0.6)
-            Text(store.searchText.isEmpty ? "No clips yet" : "No matches found")
-                .font(.system(size: 13.5))
-                .foregroundColor(.white.opacity(0.5))
+        ZStack {
+            Color.white.opacity(0.03)
+            VStack(spacing: 10) {
+                Text(store.searchText.isEmpty ? "\u{1F4CB}" : "\u{1F50D}")
+                    .font(.system(size: 36))
+                    .opacity(0.6)
+                Text(store.searchText.isEmpty ? "No clips yet" : "No matches found")
+                    .font(.system(size: 13.5))
+                    .foregroundColor(.white.opacity(0.5))
+            }
         }
-        .frame(maxWidth: .infinity, minHeight: 240)
+        .frame(maxWidth: .infinity, minHeight: 240, maxHeight: .infinity)
+    }
+
+    // MARK: - Edit Overlay
+
+    @State private var editOverlayText: String = ""
+
+    private func editOverlay(clip: Clip) -> some View {
+        ZStack {
+            Color.black.opacity(0.5)
+                .ignoresSafeArea()
+                .onTapGesture { editingClip = nil }
+
+            VStack(spacing: 16) {
+                Text("Edit Clip")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+
+                TextEditor(text: $editOverlayText)
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundColor(.white)
+                    .scrollContentBackground(.hidden)
+                    .padding(8)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(minWidth: 360, minHeight: 150)
+
+                HStack {
+                    Button("Cancel") { editingClip = nil }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.white.opacity(0.6))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    Spacer()
+
+                    Button("Save") {
+                        store.updateClipText(clip, newText: editOverlayText)
+                        editingClip = nil
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .background(Color(red: 244/255, green: 162/255, blue: 97/255))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }
+            .padding(20)
+            .frame(width: 420)
+            .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+            )
+        }
+        .onAppear {
+            editOverlayText = clip.textContent ?? ""
+        }
     }
 
     // MARK: - Quick Look
@@ -433,6 +558,179 @@ struct GalleryView: View {
         .background(Color(red: 28/255, green: 28/255, blue: 32/255, opacity: 0.82))
     }
 
+    // MARK: - Pin Picker (⌘P popup)
+
+    private var pinPickerOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture { showPinPicker = false }
+
+            VStack(spacing: 0) {
+                Text("Pin to Pinboard")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.04))
+                    .overlay(
+                        Rectangle().fill(Color.white.opacity(0.08)).frame(height: 0.5),
+                        alignment: .bottom
+                    )
+
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical, showsIndicators: false) {
+                        LazyVStack(spacing: 2) {
+                            ForEach(Array(store.sortedPinboards.enumerated()), id: \.element.id) { idx, board in
+                                pinPickerRow(board: board, index: idx)
+                                    .id(board.id)
+                            }
+                            Divider()
+                                .background(Color.white.opacity(0.1))
+                                .padding(.vertical, 4)
+                            pinPickerCreateRow(index: store.sortedPinboards.count)
+                            if let clip = store.clip(at: store.selectedIndex), clip.isPinned {
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+                                    .padding(.vertical, 4)
+                                pinPickerUnpinRow(index: store.sortedPinboards.count + 1)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
+                    .frame(maxHeight: 260)
+                    .onChange(of: pinPickerIndex) { newIndex in
+                        let boards = store.sortedPinboards
+                        let total = boards.count + (store.clip(at: store.selectedIndex)?.isPinned == true ? 1 : 0)
+                        guard newIndex >= 0, newIndex < total else { return }
+                        if newIndex < boards.count {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                proxy.scrollTo(boards[newIndex].id, anchor: .center)
+                            }
+                        }
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    footerKbd("↑↓", "Navigate")
+                    footerKbd("↵", "Pin")
+                    footerKbd("Esc", "Cancel")
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(Color.white.opacity(0.04))
+                .overlay(
+                    Rectangle().fill(Color.white.opacity(0.08)).frame(height: 0.5),
+                    alignment: .top
+                )
+            }
+            .frame(width: 260)
+            .background(Color(red: 28/255, green: 28/255, blue: 32/255, opacity: 0.95))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+            )
+            .onReceive(NotificationCenter.default.publisher(for: .stashShowPinPicker)) { _ in }
+        }
+        .onAppear {
+            // Focus the panel so key events work
+            if let window = NSApp.keyWindow {
+                window.makeFirstResponder(nil)
+            }
+        }
+    }
+
+    private func pinPickerRow(board: Pinboard, index: Int) -> some View {
+        let isSelected = pinPickerIndex == index
+        let boardColor = Color(hex: board.accent) ?? accentColor
+        let clip = store.clip(at: store.selectedIndex)
+        let isCurrent = clip?.pinboardId == board.id && clip?.isPinned == true
+
+        return Button(action: {
+            if let clip = clip {
+                store.pinToPinboard(clip, pinboardId: board.id)
+            }
+            showPinPicker = false
+        }) {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(boardColor)
+                    .frame(width: 12, height: 12)
+                Text(board.name)
+                    .font(.system(size: 12.5))
+                    .foregroundColor(isSelected ? .white : .white.opacity(0.75))
+                Spacer()
+                if isCurrent {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(boardColor)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(isSelected ? Color.white.opacity(0.1) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func pinPickerCreateRow(index: Int) -> some View {
+        let isSelected = pinPickerIndex == index
+        return Button(action: {
+            if let clip = store.clip(at: store.selectedIndex) {
+                store.createPinboardAndPin(clip: clip)
+            }
+            showPinPicker = false
+            NotificationCenter.default.post(name: .stashPinPickerStateChanged, object: nil, userInfo: ["visible": false])
+        }) {
+            HStack(spacing: 10) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(accentColor)
+                    .frame(width: 12)
+                Text("Create Pinboard")
+                    .font(.system(size: 12.5))
+                    .foregroundColor(isSelected ? .white : accentColor.opacity(0.9))
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(isSelected ? Color.white.opacity(0.1) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func pinPickerUnpinRow(index: Int) -> some View {
+        let isSelected = pinPickerIndex == index
+        return Button(action: {
+            if let clip = store.clip(at: store.selectedIndex) {
+                store.unpin(clip)
+            }
+            showPinPicker = false
+        }) {
+            HStack(spacing: 10) {
+                Image(systemName: "pin.slash")
+                    .font(.system(size: 11))
+                    .foregroundColor(.red.opacity(0.8))
+                    .frame(width: 12)
+                Text("Unpin")
+                    .font(.system(size: 12.5))
+                    .foregroundColor(isSelected ? .white : .red.opacity(0.7))
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(isSelected ? Color.white.opacity(0.1) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Gallery Footer (CSS .g-footer with kbd-styled hints)
 
     private var galleryFooter: some View {
@@ -450,8 +748,7 @@ struct GalleryView: View {
                 .monospacedDigit()
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 10)
-        .padding(.bottom, 12)
+        .padding(.vertical, 11)
         .overlay(
             Rectangle()
                 .fill(Color.white.opacity(0.06))
@@ -460,67 +757,7 @@ struct GalleryView: View {
         )
     }
 
-    // MARK: - Wallpaper Theme Gradient
-
-    private var wallpaperGradient: some View {
-        Group {
-            switch wallpaperTheme {
-            case 1: // Cool
-                ZStack {
-                    RadialGradient(
-                        colors: [Color(red: 0x6c/255, green: 0x8e/255, blue: 0xef/255), .clear],
-                        center: UnitPoint(x: 0.18, y: 0.22),
-                        startRadius: 0, endRadius: 280
-                    )
-                    RadialGradient(
-                        colors: [Color(red: 0x8b/255, green: 0x5c/255, blue: 0xf6/255), .clear],
-                        center: UnitPoint(x: 0.82, y: 0.18),
-                        startRadius: 0, endRadius: 260
-                    )
-                    RadialGradient(
-                        colors: [Color(red: 0x06/255, green: 0xb6/255, blue: 0xd4/255), .clear],
-                        center: UnitPoint(x: 0.25, y: 0.82),
-                        startRadius: 0, endRadius: 280
-                    )
-                }
-                .opacity(0.5)
-            case 2: // Mono
-                ZStack {
-                    RadialGradient(
-                        colors: [Color(red: 0x47/255, green: 0x55/255, blue: 0x69/255), .clear],
-                        center: UnitPoint(x: 0.30, y: 0.25),
-                        startRadius: 0, endRadius: 260
-                    )
-                    RadialGradient(
-                        colors: [Color(red: 0x1e/255, green: 0x29/255, blue: 0x3b/255), .clear],
-                        center: UnitPoint(x: 0.75, y: 0.80),
-                        startRadius: 0, endRadius: 260
-                    )
-                }
-                .opacity(0.4)
-            default: // Warm
-                ZStack {
-                    RadialGradient(
-                        colors: [Color(red: 0xf7/255, green: 0xb2/255, blue: 0x67/255), .clear],
-                        center: UnitPoint(x: 0.18, y: 0.22),
-                        startRadius: 0, endRadius: 280
-                    )
-                    RadialGradient(
-                        colors: [Color(red: 0xe7/255, green: 0x6f/255, blue: 0x51/255), .clear],
-                        center: UnitPoint(x: 0.82, y: 0.18),
-                        startRadius: 0, endRadius: 260
-                    )
-                    RadialGradient(
-                        colors: [Color(red: 0x06/255, green: 0xb6/255, blue: 0xd4/255), .clear],
-                        center: UnitPoint(x: 0.25, y: 0.82),
-                        startRadius: 0, endRadius: 280
-                    )
-                }
-                .opacity(0.45)
-            }
-        }
-        .allowsHitTesting(false)
-    }
+    // MARK: - Panel Appearance (Legacy gradient + Liquid Glass)
 
     private func footerKbd(_ keys: String, _ label: String) -> some View {
         HStack(spacing: 6) {
@@ -539,5 +776,65 @@ struct GalleryView: View {
                 .font(.system(size: 11.5))
                 .foregroundColor(.white.opacity(0.55))
         }
+    }
+}
+
+private struct PanelAppearanceModifier: ViewModifier {
+    let blurLevel: Int
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26, *) {
+            content
+                .clipShape(RoundedRectangle(cornerRadius: 22))
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+        } else {
+            content
+                .background(
+                    ZStack {
+                        gradientBackground
+                        Color(red: 28/255, green: 28/255, blue: 32/255).opacity(0.35)
+                            .background(materialForBlurLevel)
+                    }
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 22))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.5)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+                        .mask(
+                            Rectangle()
+                                .frame(height: 1)
+                                .frame(maxHeight: .infinity, alignment: .top)
+                        )
+                )
+        }
+    }
+
+    private var materialForBlurLevel: Material {
+        switch blurLevel {
+        case 0: return .thinMaterial
+        case 2: return .thickMaterial
+        default: return .ultraThinMaterial
+        }
+    }
+
+    private var gradientBackground: some View {
+        ZStack {
+            RadialGradient(
+                colors: [Color(red: 0x47/255, green: 0x55/255, blue: 0x69/255), .clear],
+                center: UnitPoint(x: 0.30, y: 0.25),
+                startRadius: 0, endRadius: 260
+            )
+            RadialGradient(
+                colors: [Color(red: 0x1e/255, green: 0x29/255, blue: 0x3b/255), .clear],
+                center: UnitPoint(x: 0.75, y: 0.80),
+                startRadius: 0, endRadius: 260
+            )
+        }
+        .opacity(0.4)
+        .allowsHitTesting(false)
     }
 }

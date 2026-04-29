@@ -3,29 +3,13 @@ import AppKit
 import SwiftData
 
 final class ClipboardStore: ObservableObject {
-    @Published var clips: [Clip] = []
+    @Published var clips: [Clip] = [] { didSet { recomputeDisplayClips() } }
     @Published var pinboards: [Pinboard] = []
     @Published var selectedIndex: Int = 0
-    @Published var searchText: String = ""
-    @Published var filterType: ClipType?
-    @Published var activePinboardId: UUID?
-
-    var displayClips: [Clip] {
-        var result = clips
-
-        if let boardId = activePinboardId {
-            result = result.filter { $0.pinboardId == boardId }
-        }
-
-        if let type = filterType {
-            result = SearchService.filter(clips: result, type: type)
-        }
-        if !searchText.isEmpty {
-            result = SearchService.filter(clips: result, query: searchText)
-        }
-
-        return result.sorted { ($0.pinnedAt != nil && $1.pinnedAt == nil) || (($0.pinnedAt ?? .distantPast) > ($1.pinnedAt ?? .distantPast) && $0.pinnedAt != nil && $1.pinnedAt != nil) }
-    }
+    @Published var searchText: String = "" { didSet { recomputeDisplayClips() } }
+    @Published var filterType: ClipType? { didSet { recomputeDisplayClips() } }
+    @Published var activePinboardId: UUID? { didSet { recomputeDisplayClips() } }
+    @Published private(set) var displayClips: [Clip] = []
 
     var activePinboard: Pinboard? {
         guard let id = activePinboardId else { return nil }
@@ -65,6 +49,7 @@ final class ClipboardStore: ObservableObject {
                 }
             }
         }
+        recomputeDisplayClips()
     }
 
     // MARK: - Clip Processing
@@ -106,6 +91,10 @@ final class ClipboardStore: ObservableObject {
         clips.insert(clip, at: 0)
         selectedIndex = 0
 
+        if PreferencesStore.shared.soundEnabled {
+            NSSound(named: "Tink")?.play()
+        }
+
         if clip.type == .link, let url = clip.textContent {
             fetchLinkMetadata(for: url, clipId: clip.id)
         }
@@ -140,6 +129,18 @@ final class ClipboardStore: ObservableObject {
         clip.pinnedAt = clip.pinnedAt == nil ? Date() : nil
     }
 
+    func pinToPinboard(_ clip: Clip, pinboardId: UUID) {
+        clip.pinboardId = pinboardId
+        clip.pinnedAt = Date()
+        recomputeDisplayClips()
+    }
+
+    func unpin(_ clip: Clip) {
+        clip.pinnedAt = nil
+        clip.pinboardId = nil
+        recomputeDisplayClips()
+    }
+
     func updateClipText(_ clip: Clip, newText: String) {
         clip.textContent = newText
         clip.contentHash = DedupeHasher.hash(data: Data(newText.utf8))
@@ -147,6 +148,10 @@ final class ClipboardStore: ObservableObject {
 
     func moveClipToPinboard(_ clip: Clip, pinboardId: UUID?) {
         clip.pinboardId = pinboardId
+        if pinboardId != nil {
+            clip.pinnedAt = clip.pinnedAt ?? Date()
+        }
+        recomputeDisplayClips()
     }
 
     // MARK: - Search & Filter
@@ -164,13 +169,19 @@ final class ClipboardStore: ObservableObject {
     // MARK: - Navigation
 
     func selectNext() {
+        let start = CFAbsoluteTimeGetCurrent()
         guard selectedIndex < displayClips.count - 1 else { return }
         selectedIndex += 1
+        let ms = (CFAbsoluteTimeGetCurrent() - start) * 1000
+        if ms > 1 { NSLog("[Perf] selectNext: %.2fms", ms) }
     }
 
     func selectPrevious() {
+        let start = CFAbsoluteTimeGetCurrent()
         guard selectedIndex > 0 else { return }
         selectedIndex -= 1
+        let ms = (CFAbsoluteTimeGetCurrent() - start) * 1000
+        if ms > 1 { NSLog("[Perf] selectPrevious: %.2fms", ms) }
     }
 
     func clip(at index: Int) -> Clip? {
@@ -196,6 +207,29 @@ final class ClipboardStore: ObservableObject {
         pinboards.append(board)
     }
 
+    @discardableResult
+    func createPinboardAndPin(clip: Clip) -> Pinboard {
+        var index = 0
+        let existingNames = Set(pinboards.map { $0.name })
+        while existingNames.contains("Pinboard \(index)") { index += 1 }
+        let name = "Pinboard \(index)"
+
+        let order = pinboards.count
+        let accent = nextPinboardColor()
+        let board = Pinboard(name: name, icon: "folder", accent: accent, order: order)
+        modelContext.insert(board)
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to create pinboard: \(error)")
+            modelContext.rollback()
+            return board
+        }
+        pinboards.append(board)
+        pinToPinboard(clip, pinboardId: board.id)
+        return board
+    }
+
     func renamePinboard(_ board: Pinboard, newName: String) {
         board.name = newName
     }
@@ -209,6 +243,7 @@ final class ClipboardStore: ObservableObject {
         if activePinboardId == board.id {
             activePinboardId = nil
         }
+        recomputeDisplayClips()
     }
 
     func switchToNextPinboard() {
@@ -250,6 +285,25 @@ final class ClipboardStore: ObservableObject {
 
     // MARK: - Private
 
+    private func recomputeDisplayClips() {
+        let start = CFAbsoluteTimeGetCurrent()
+        var result = clips
+
+        if let boardId = activePinboardId {
+            result = result.filter { $0.pinboardId == boardId }
+        }
+        if let type = filterType {
+            result = SearchService.filter(clips: result, type: type)
+        }
+        if !searchText.isEmpty {
+            result = SearchService.filter(clips: result, query: searchText)
+        }
+
+        displayClips = result.sorted { $0.createdAt > $1.createdAt }
+        let ms = (CFAbsoluteTimeGetCurrent() - start) * 1000
+        if ms > 5 { NSLog("[Perf] recomputeDisplayClips: %.1fms, %d clips", ms, displayClips.count) }
+    }
+
     private func fetchLinkMetadata(for urlString: String, clipId: UUID) {
         LinkMetadataService.shared.fetchMetadata(for: urlString) { [weak self] meta in
             guard let meta = meta else { return }
@@ -264,10 +318,20 @@ final class ClipboardStore: ObservableObject {
 
     private func loadFromContext() {
         let clipDescriptor = FetchDescriptor<Clip>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
-        clips = (try? modelContext.fetch(clipDescriptor)) ?? []
+        do {
+            clips = try modelContext.fetch(clipDescriptor)
+        } catch {
+            NSLog("[Stash] Failed to fetch clips: \(error)")
+            clips = []
+        }
 
         let boardDescriptor = FetchDescriptor<Pinboard>(sortBy: [SortDescriptor(\.order)])
-        pinboards = (try? modelContext.fetch(boardDescriptor)) ?? []
+        do {
+            pinboards = try modelContext.fetch(boardDescriptor)
+        } catch {
+            NSLog("[Stash] Failed to fetch pinboards: \(error)")
+            pinboards = []
+        }
 
         backfillPinboardColorsIfNeeded()
 

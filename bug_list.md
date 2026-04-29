@@ -78,3 +78,21 @@ Bug ID 自增，每条关联测试用例和功能项。状态：`open` / `fixed`
 |---|---|---|---|---|
 | BUG-025 | 粘贴不回前台应用：选中卡片按 Enter 后内容写入剪贴板，但未粘贴回前台应用输入框。根因：未释放 Stash 焦点 + 未按 PID 发送 CGEvent | F-12 | M-08 | fixed |
 | BUG-026 | ⌘1-9 快捷粘贴未激活前台应用：直接调 PasteSimulator.simulatePaste()，没有关闭面板、没有激活前台应用、没有延迟 | F-11 | UI-04 | fixed |
+
+## v0.5.0 第五轮（用户实测回归）
+
+| Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
+|---|---|---|---|---|
+| BUG-027 | 设置页标题栏渲染为线框样式：fullSizeContentView 未配置，缺少透明标题栏 + 实色背景 | F-39 | UI-19 | fixed |
+| BUG-028 | 空白状态 UI 仅在有文案的区域显示背景色，未撑满画廊全宽全高 | F-09 | UI-02 | fixed |
+| BUG-029 | 卡片编辑点击后应用卡死：NSPanel 不支持 SwiftUI .sheet()，改用自定义 overlay | F-35 | M-17 | fixed |
+| BUG-030 | 图片类型卡片将 footer 挤出卡片边界：cardBody 用 maxHeight:.infinity 嵌套导致布局协商失败，改用 cardSize - footerHeight 显式计算 | F-09 | UI-02 | fixed |
+| BUG-031 | 卡片 footer 背景色不填满卡片宽度：.background() 在 .padding() 之后导致左右留白 | F-09 | UI-02 | fixed |
+| BUG-032 | Finder 复制文件检测失败：Finder 使用 file reference URL (file:///.file/id=…) 而非路径 URL，且放入文件图标 TIFF 数据截获图片检测 | F-06, F-15 | U-02, M-05 | fixed |
+| BUG-033 | Finder 复制图片文件被归为 File 类型：需要在文件 URL 检测中读取图片扩展名并分类为 Image | F-06 | U-02 | fixed |
+| BUG-034 | SwiftData schema 变更后 Pinboard 数据丢失：loadFromContext 用 try? 静默吞错，ModelContainer 创建失败直接 fatalError 无降级 | F-28 | M-20 | fixed |
+| BUG-035 | Pin Picker 底栏背景不填满弹窗宽度：footer HStack 缺少 .frame(maxWidth:.infinity) | F-31 | UI-17 | fixed |
+| BUG-036 | Pin Picker 每行右侧显示多余序号 1/2/3…：键盘导航已高亮选中行，序号冗余 | F-31 | UI-17 | fixed |
+| BUG-037 | All Clips 视图下 Pin badge 不显示：pinColor(for:) 中 activePinboardId == nil 直接返回 nil | F-52 | UI-17 | fixed |
+| BUG-038 | Appearance 设置页 Theme 选项多余：当前仅暗色模式，无其他主题可选 | F-42 | UI-22 | fixed |
+| BUG-039 | 首次启动顺序错误：应先打开设置页再弹出辅助功能授权弹窗 | F-13 | M-07 | fixed |
