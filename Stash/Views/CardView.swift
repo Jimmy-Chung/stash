@@ -415,17 +415,6 @@ struct CardView: View {
 
     private var codeBody: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let lang = clip.codeLanguage {
-                Text(lang.uppercased())
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .tracking(0.04)
-                    .foregroundColor(Color(red: 0x93/255, green: 0xc5/255, blue: 0xfd/255))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(Color(red: 0x93/255, green: 0xc5/255, blue: 0xfd/255, opacity: 0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-            }
-
             ZStack(alignment: .bottom) {
                 ScrollView {
                     Text(clip.textContent ?? "")

@@ -19,7 +19,6 @@ final class Clip {
     var dominantColors: [String]?
     var colorHex: String?
     var colorRGB: String?
-    var codeLanguage: String?
     var fileName: String?
 
     var pinboardId: UUID?
@@ -45,7 +44,6 @@ final class Clip {
         dominantColors: [String]? = nil,
         colorHex: String? = nil,
         colorRGB: String? = nil,
-        codeLanguage: String? = nil,
         fileName: String? = nil,
         pinboardId: UUID? = nil,
         pinnedAt: Date? = nil
@@ -64,7 +62,6 @@ final class Clip {
         self.dominantColors = dominantColors
         self.colorHex = colorHex
         self.colorRGB = colorRGB
-        self.codeLanguage = codeLanguage
         self.fileName = fileName
         self.pinboardId = pinboardId
         self.pinnedAt = pinnedAt
@@ -140,7 +137,7 @@ final class Clip {
         case .file:
             return fileName ?? textContent ?? "File"
         case .code:
-            return codeLanguage ?? "Code"
+            return "Code"
         case .color:
             return colorHex ?? "Color"
         default:

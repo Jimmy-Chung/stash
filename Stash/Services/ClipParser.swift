@@ -7,7 +7,6 @@ struct ParsedClip {
     var title: String?
     var colorHex: String?
     var colorRGB: String?
-    var codeLanguage: String?
     var fileName: String?
     var imageWidth: Int?
     var imageHeight: Int?
@@ -121,7 +120,7 @@ enum ClipParser {
             guard !trimmed.isEmpty else { return nil }
             if let special = detectSpecialType(trimmed) { return special }
             if containsHTMLTags(trimmed) {
-                return ParsedClip(type: .code, textContent: visible, imageData: nil, codeLanguage: "HTML")
+                return ParsedClip(type: .code, textContent: visible, imageData: nil)
             }
             return ParsedClip(type: .text, textContent: visible, imageData: nil)
         }
@@ -158,8 +157,8 @@ enum ClipParser {
             return ParsedClip(type: .color, textContent: trimmed, imageData: nil, colorHex: color.hex, colorRGB: color.rgb)
         }
         // Code
-        if let detection = CodeLanguageDetector.detect(trimmed) {
-            return ParsedClip(type: .code, textContent: trimmed, imageData: nil, codeLanguage: detection.language)
+        if CodeLanguageDetector.isCode(trimmed) {
+            return ParsedClip(type: .code, textContent: trimmed, imageData: nil)
         }
         return nil
     }

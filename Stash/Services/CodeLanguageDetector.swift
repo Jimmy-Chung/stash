@@ -1,91 +1,45 @@
 import Foundation
 
 enum CodeLanguageDetector {
-    struct Detection {
-        let language: String
-    }
-
-    static func detect(_ text: String) -> Detection? {
+    static func isCode(_ text: String) -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count > 20 else { return nil }
+        guard trimmed.count > 20 else { return false }
 
-        if isSQL(trimmed) { return Detection(language: "SQL") }
-        if isTypeScript(trimmed) { return Detection(language: "TypeScript") }
-        if isPython(trimmed) { return Detection(language: "Python") }
-        if isShell(trimmed) { return Detection(language: "Shell") }
-        if isJSON(trimmed) { return Detection(language: "JSON") }
-        if isSwift(trimmed) { return Detection(language: "Swift") }
-        if isHTML(trimmed) { return Detection(language: "HTML") }
-        if isCSS(trimmed) { return Detection(language: "CSS") }
-        if isGo(trimmed) { return Detection(language: "Go") }
-        if isRust(trimmed) { return Detection(language: "Rust") }
-        if isJava(trimmed) { return Detection(language: "Java") }
-        if isCSharp(trimmed) { return Detection(language: "C#") }
+        let lower = trimmed.lowercased()
 
-        return nil
-    }
+        let patterns = [
+            // SQL
+            "select ", "from ", "where ", "insert into", "create table", "alter table",
+            "join ", "group by", "order by", "having ", "union ",
+            // TypeScript
+            ": string", ": number", ": boolean", "interface ", "=> {", ": void", "as ", "export ",
+            // Python
+            "def ", "import ", "if __name__", "self.", "print(", "elif ", "range(",
+            // Shell
+            "#!/bin/bash", "#!/bin/sh", "#!/bin/zsh", "$(", " | grep", "echo ", "chmod ",
+            // Swift
+            "func ", "guard ", "struct ", "import uikit", "import swiftui", "import appkit", ".self",
+            // HTML
+            "<html", "<div", "<span", "<head", "<body", "<!doctype", "</",
+            // CSS
+            "font-size", "font-family", "font-weight", "background-color",
+            "border-radius", "box-shadow", "text-align", "max-width",
+            "grid-template", "flex-direction", "@media", "@keyframes",
+            // Go
+            "package ", "import (", "fmt.", "err != nil", "go func",
+            // Rust
+            "fn ", "let mut", "impl ", "pub fn", "match ",
+            // Java
+            "public class", "private ", "protected ", "void ", "system.out", "import java",
+            // C#
+            "namespace ", "console.",
+            // Generic
+            "const ", "let ", "var ", "class ", "-> ", "::",
+        ]
 
-    private static func isSQL(_ t: String) -> Bool {
-        let lower = t.lowercased()
-        let keywords = ["select ", "from ", "where ", "insert into", "create table", "alter table", "join ", "group by", "order by", "having ", "union "]
-        return keywords.filter { lower.contains($0) }.count >= 2
-    }
+        let matchCount = patterns.filter { lower.contains($0) }.count
+        guard matchCount >= 3 else { return false }
 
-    private static func isTypeScript(_ t: String) -> Bool {
-        let patterns = [": string", ": number", ": boolean", "interface ", "=> {", "const ", "let ", ": void", "as ", "export "]
-        return patterns.filter { t.contains($0) }.count >= 3
-    }
-
-    private static func isPython(_ t: String) -> Bool {
-        let patterns = ["def ", "import ", "from ", "class ", "if __name__", "self.", "print(", "elif ", "range("]
-        return patterns.filter { t.contains($0) }.count >= 2
-    }
-
-    private static func isShell(_ t: String) -> Bool {
-        let patterns = ["#!/bin/bash", "#!/bin/sh", "#!/bin/zsh", "$(", " | grep", "echo ", "export ", "chmod "]
-        return patterns.filter { t.contains($0) }.count >= 2
-    }
-
-    private static func isJSON(_ t: String) -> Bool {
-        let trimmed = t.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard (trimmed.hasPrefix("{") && trimmed.hasSuffix("}")) ||
-              (trimmed.hasPrefix("[") && trimmed.hasSuffix("]")) else { return false }
-        return (trimmed.contains("\":") || trimmed.contains("\" :")) && trimmed.contains("\"")
-    }
-
-    private static func isSwift(_ t: String) -> Bool {
-        let patterns = ["func ", "var ", "let ", "guard ", "struct ", "class ", "import UIKit", "import SwiftUI", "import AppKit", "-> ", ".self"]
-        return patterns.filter { t.contains($0) }.count >= 3
-    }
-
-    private static func isHTML(_ t: String) -> Bool {
-        let lower = t.lowercased()
-        let patterns = ["<html", "<div", "<span", "<head", "<body", "<!doctype", "</"]
-        return patterns.filter { lower.contains($0) }.count >= 3
-    }
-
-    private static func isCSS(_ t: String) -> Bool {
-        let patterns = ["{", "}", ":", ";", "margin", "padding", "display", "color:", "background"]
-        return patterns.filter { t.contains($0) }.count >= 4 && t.contains("{") && t.contains("}")
-    }
-
-    private static func isGo(_ t: String) -> Bool {
-        let patterns = ["func ", "package ", "import (", ":=", "fmt.", "err != nil", "go func"]
-        return patterns.filter { t.contains($0) }.count >= 3
-    }
-
-    private static func isRust(_ t: String) -> Bool {
-        let patterns = ["fn ", "let mut", "impl ", "pub fn", "-> ", "use ", "::", "match "]
-        return patterns.filter { t.contains($0) }.count >= 3
-    }
-
-    private static func isJava(_ t: String) -> Bool {
-        let patterns = ["public class", "private ", "protected ", "void ", "System.out", "new ", "import java"]
-        return patterns.filter { t.contains($0) }.count >= 3
-    }
-
-    private static func isCSharp(_ t: String) -> Bool {
-        let patterns = ["using ", "namespace ", "public class", "var ", "void ", "Console."]
-        return patterns.filter { t.contains($0) }.count >= 3
+        return true
     }
 }

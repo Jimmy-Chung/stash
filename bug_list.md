@@ -152,3 +152,11 @@ Bug ID 自增，每条关联测试用例和功能项。状态：`open` / `fixed`
 | BUG-061 | HotKey 依赖版本使用 `from: "0.2.0"` 未锁定精确版本，存在供应链风险 | - | - | fixed |
 | BUG-062 | 无 Pinboard 时 ⌘P 无响应：handler 分岔逻辑中"无 Pinboard"分支直接调 `createPinboardAndPin`，无 UI 反馈。统一弹出 Pin Picker 利用其内置 Create 选项 | F-31, F-37 | UI-17 | fixed |
 | BUG-063 | 新 clip 自动归入活跃 Pinboard：`processClip` 中 `activePinboardId` 导致所有复制自动 pin 到当前选中 Board，用户无法区分主动 Pin 和自动归类 | F-37 | UI-17 | fixed |
+
+## v0.8.3（主题色同步 + Code 检测修正）
+
+| Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
+|---|---|---|---|---|
+| BUG-064 | GalleryView/ClipContextMenu 主题色残留橙色 `#F4A261`，未同步为紫色 `#7870F2`：选中卡片边框、Quick Look "Close"、编辑 Save 按钮、删除确认按钮 | F-09, F-69 | UI-02 | fixed |
+| BUG-065 | Code 类型子语言分类移除：CSS/HTML/SQL/Python 等 12 种子类型 detection 与 `codeLanguage` 标签展示全部移除，改为单一 `isCode()` 布尔判断（合并全部关键词，≥3 命中）。`CardView` 不再显示语言 badge | F-06 | U-02 | fixed |
+| BUG-066 | 侧栏缩略模式 Pinboard 圆点未居中：`.frame(alignment: .leading)` 导致 icon-only 时圆点靠左，改为根据 `showsLabels` 动态切换 leading/center | F-29 | UI-17 | fixed |

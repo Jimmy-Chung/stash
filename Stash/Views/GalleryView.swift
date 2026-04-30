@@ -16,7 +16,7 @@ struct GalleryView: View {
     @State private var showPinPicker = false
     @State private var pinPickerIndex = 0
 
-    private let accentColor = Color(red: 244/255, green: 162/255, blue: 97/255)
+    private let accentColor = Color(red: 120/255, green: 112/255, blue: 242/255)
 
     var body: some View {
         HStack(spacing: 0) {
@@ -468,7 +468,7 @@ struct GalleryView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
-                    .background(Color(red: 244/255, green: 162/255, blue: 97/255))
+                    .background(accentColor)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
