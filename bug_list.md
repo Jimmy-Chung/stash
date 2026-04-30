@@ -150,3 +150,5 @@ Bug ID 自增，每条关联测试用例和功能项。状态：`open` / `fixed`
 | BUG-059 | `deleteClip` 不擦除内存：只删除模型和文件，Swift String 内容留在堆内存直到 ARC 回收 — Swift CoW 值类型无法手动覆写堆内存，wontfix | F-38 | - | wontfix |
 | BUG-060 | `BlobStore.read()` 缺少路径遍历保护：`delete()` 有 `hasPrefix` 校验但 `read()` 没有 | F-15 | - | fixed |
 | BUG-061 | HotKey 依赖版本使用 `from: "0.2.0"` 未锁定精确版本，存在供应链风险 | - | - | fixed |
+| BUG-062 | 无 Pinboard 时 ⌘P 无响应：handler 分岔逻辑中"无 Pinboard"分支直接调 `createPinboardAndPin`，无 UI 反馈。统一弹出 Pin Picker 利用其内置 Create 选项 | F-31, F-37 | UI-17 | fixed |
+| BUG-063 | 新 clip 自动归入活跃 Pinboard：`processClip` 中 `activePinboardId` 导致所有复制自动 pin 到当前选中 Board，用户无法区分主动 Pin 和自动归类 | F-37 | UI-17 | fixed |

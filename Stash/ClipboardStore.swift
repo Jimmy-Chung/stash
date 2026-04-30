@@ -86,7 +86,6 @@ final class ClipboardStore: ObservableObject {
                     )
                     clip.imagePath = path
                     self.modelContext.insert(clip)
-                    if let boardId = self.activePinboardId { clip.pinboardId = boardId }
                     self.clips.insert(clip, at: 0)
                     self.selectedIndex = 0
                     if PreferencesStore.shared.soundEnabled {
@@ -118,11 +117,6 @@ final class ClipboardStore: ObservableObject {
         )
 
         modelContext.insert(clip)
-
-        if let boardId = activePinboardId {
-            clip.pinboardId = boardId
-        }
-
         clips.insert(clip, at: 0)
         selectedIndex = 0
 
