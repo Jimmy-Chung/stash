@@ -447,7 +447,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.8.1;
+				MARKETING_VERSION = 0.8.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stash.app;
 				SDKROOT = macosx;
 				SWIFT_OBJC_BRIDGING_HEADER = "Stash/Stash-Bridging-Header.h";
@@ -526,7 +526,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.8.1;
+				MARKETING_VERSION = 0.8.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stash.app;
 				SDKROOT = macosx;
 				SWIFT_OBJC_BRIDGING_HEADER = "Stash/Stash-Bridging-Header.h";
@@ -719,7 +719,7 @@
 			repositoryURL = "https://github.com/soffes/HotKey";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.2.0;
+				minimumVersion = 0.2.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
