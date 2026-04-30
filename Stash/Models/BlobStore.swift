@@ -13,7 +13,7 @@ final class BlobStore {
             let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
             self.baseDirectory = appSupport.appendingPathComponent("Stash/Blobs", isDirectory: true)
         }
-        try? FileManager.default.createDirectory(at: self.baseDirectory, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: self.baseDirectory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
     }
 
     func write(_ data: Data) -> String? {
@@ -36,7 +36,9 @@ final class BlobStore {
     }
 
     func read(path: String) -> Data? {
-        try? Data(contentsOf: URL(fileURLWithPath: path))
+        let resolved = URL(fileURLWithPath: path).standardized
+        guard resolved.path.hasPrefix(baseDirectory.standardized.path) else { return nil }
+        return try? Data(contentsOf: resolved)
     }
 
     func delete(_ path: String) {

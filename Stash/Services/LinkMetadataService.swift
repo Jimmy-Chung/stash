@@ -37,7 +37,7 @@ final class LinkMetadataService {
                             if let data = data as? Data {
                                 let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
                                 let faviconDir = appSupport.appendingPathComponent("Stash/Favicons", isDirectory: true)
-                                try? FileManager.default.createDirectory(at: faviconDir, withIntermediateDirectories: true)
+                                try? FileManager.default.createDirectory(at: faviconDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
                                 let path = faviconDir.appendingPathComponent("\(url.host ?? UUID().uuidString).ico")
                                 try? data.write(to: path, options: .atomicWrite)
                                 faviconPath = path.path

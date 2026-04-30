@@ -100,8 +100,9 @@ final class PreferencesStore: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // Special handling for launchAtLogin SMAppService
+        // Special handling for launchAtLogin SMAppService (drop first to skip init trigger)
         $launchAtLogin
+            .dropFirst()
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
             .sink { enabled in
                 DispatchQueue.global(qos: .userInitiated).async {
