@@ -109,44 +109,44 @@ Bug ID 自增，每条关联测试用例和功能项。状态：`open` / `fixed`
 
 | Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
 |---|---|---|---|---|
-| BUG-041 | SwiftData 初始化失败时只删 `default.store`，若损坏的是 sidecar 文件（`.store-wal`/`.store-shm`）则重试仍失败，直接 `fatalError` 启动即崩 | F-43 | M-26 | open |
-| BUG-042 | URL 元数据自动抓取暴露敏感参数：`LPMetadataProvider` 向目标 URL 发起真实 HTTP 请求，query string 中的 token/内网路径暴露在目标服务器访问日志中 | F-15 | - | open |
+| BUG-041 | SwiftData 初始化失败时只删 `default.store`，若损坏的是 sidecar 文件（`.store-wal`/`.store-shm`）则重试仍失败，直接 `fatalError` 启动即崩 | F-43 | M-26 | fixed |
+| BUG-042 | URL 元数据自动抓取暴露敏感参数：`LPMetadataProvider` 向目标 URL 发起真实 HTTP 请求，query string 中的 token/内网路径暴露在目标服务器访问日志中 | F-15 | - | fixed |
 
 ### P1 — 功能错误
 
 | Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
 |---|---|---|---|---|
-| BUG-043 | 未过滤密码管理器隐私剪贴板：未检查 `org.nspasteboard.ConcealedType` UTI，1Password/Bitwarden 的密码和 OTP 被原样存入数据库 | F-06 | U-02 | open |
-| BUG-044 | 图片处理阻塞主线程：`processClip()` 中 SHA256 哈希、磁盘写入、主色提取全部同步在主线程执行，复制截图时 UI 卡顿 50-200ms | F-06, F-15 | - | open |
-| BUG-045 | ImageMetadataService 同步解码大图：`NSImage(data:)` + `CIImage(data:)` + `CIContext().createCGImage()` 在主线程同步调用，大图时卡死 | F-06 | - | open |
+| BUG-043 | 未过滤密码管理器隐私剪贴板：未检查 `org.nspasteboard.ConcealedType` UTI，1Password/Bitwarden 的密码和 OTP 被原样存入数据库 | F-06 | U-02 | fixed |
+| BUG-044 | 图片处理阻塞主线程：`processClip()` 中 SHA256 哈希、磁盘写入、主色提取全部同步在主线程执行，复制截图时 UI 卡顿 50-200ms | F-06, F-15 | - | fixed |
+| BUG-045 | ImageMetadataService 同步解码大图：`NSImage(data:)` + `CIImage(data:)` + `CIContext().createCGImage()` 在主线程同步调用，大图时卡死 | F-06 | - | fixed |
 
 ### P2 — 交互/性能问题
 
 | Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
 |---|---|---|---|---|
-| BUG-046 | 图片无缩略图缓存：每次 `CardView` 渲染从磁盘加载全分辨率图片创建 `NSImage`，4K 截图 ~8MB 滚动时反复读盘解码 | F-09 | UI-02 | open |
-| BUG-047 | 启动时全量加载 Clip 到内存：`loadFromContext()` 无分页，一次性 fetch 全部历史（上限 500 条）含文本内容 | F-43 | - | open |
-| BUG-048 | SwiftData 模型缺少索引：`createdAt`/`typeRaw`/`pinboardId`/`contentHash` 无 `@Attribute(.index)`，查询靠全表扫描 | - | - | open |
-| BUG-049 | 图片存储无压缩：所有图片存为 PNG 不做 JPEG 压缩，100 张截图 ≈ 800MB 磁盘 | F-15 | - | open |
-| BUG-050 | `appIcon(for:)` 每次渲染遍历 `NSWorkspace.runningApplications` 查找图标，无缓存 | F-09 | UI-02 | open |
-| BUG-051 | 搜索为线性扫描：`lowercased().contains()` O(n×m) 扫描所有文本，每次按键重新分配字符串 | F-27 | UI-11 | open |
-| BUG-052 | `deleteClips` 批量删除使用 `contains(where:)` 复杂度 O(n²) | F-38 | UI-18 | open |
-| BUG-053 | `LinkMetadataService` 用 `DispatchSemaphore.wait()` 阻塞回调线程 + 无超时 + 复用单个 `LPMetadataProvider`，有死锁/假死风险 | F-15 | - | open |
-| BUG-054 | 侧边栏 Pinboard 计数每次渲染 O(n) filter 全量 clips | F-29 | UI-17 | open |
-| BUG-055 | 剪贴板内容无大小上限：超大文本或图片无截断保护，可能导致数据库膨胀或 OOM | F-06, F-43 | - | open |
+| BUG-046 | 图片无缩略图缓存：每次 `CardView` 渲染从磁盘加载全分辨率图片创建 `NSImage`，4K 截图 ~8MB 滚动时反复读盘解码 | F-09 | UI-02 | fixed |
+| BUG-047 | 启动时全量加载 Clip 到内存：`loadFromContext()` 无分页，一次性 fetch 全部历史（上限 500 条）含文本内容 | F-43 | - | fixed |
+| BUG-048 | SwiftData 模型缺少索引：`createdAt`/`typeRaw`/`pinboardId`/`contentHash` 无 `@Attribute(.index)`，查询靠全表扫描 — 当前 SDK 不支持 `.index` option，搁置 | - | - | open |
+| BUG-049 | 图片存储无压缩：所有图片存为 PNG 不做 JPEG 压缩，100 张截图 ≈ 800MB 磁盘 | F-15 | - | fixed |
+| BUG-050 | `appIcon(for:)` 每次渲染遍历 `NSWorkspace.runningApplications` 查找图标，无缓存 | F-09 | UI-02 | fixed |
+| BUG-051 | 搜索为线性扫描：`lowercased().contains()` O(n×m) 扫描所有文本，每次按键重新分配字符串 | F-27 | UI-11 | fixed |
+| BUG-052 | `deleteClips` 批量删除使用 `contains(where:)` 复杂度 O(n²) | F-38 | UI-18 | fixed |
+| BUG-053 | `LinkMetadataService` 用 `DispatchSemaphore.wait()` 阻塞回调线程 + 无超时 + 复用单个 `LPMetadataProvider`，有死锁/假死风险 | F-15 | - | fixed |
+| BUG-054 | 侧边栏 Pinboard 计数每次渲染 O(n) filter 全量 clips | F-29 | UI-17 | fixed |
+| BUG-055 | 剪贴板内容无大小上限：超大文本或图片无截断保护，可能导致数据库膨胀或 OOM | F-06, F-43 | - | fixed |
 
 ### P3 — 缺失功能
 
 | Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
 |---|---|---|---|---|
-| BUG-056 | 数据明文存储：SwiftData SQLite + 图片 Blob 均无加密，任何能读用户目录的进程可获取全部剪贴历史 | F-43 | - | open |
-| BUG-057 | 存储目录未设置限制性权限：`BlobStore`/`Favicons` 目录创建时未显式设 `0o700` | - | - | open |
-| BUG-058 | `LaunchAtLogin` 初始化误触发：`PreferencesStore.init()` 中 `$launchAtLogin` sink 在初始化时因读取 UserDefaults 旧值触发了不必要的 `SMAppService` 调用 | F-41 | - | open |
+| BUG-056 | 数据明文存储：SwiftData SQLite + 图片 Blob 均无加密，任何能读用户目录的进程可获取全部剪贴历史 — 本地工具无网络同步，加密需求优先级低，wontfix | F-43 | - | wontfix |
+| BUG-057 | 存储目录未设置限制性权限：`BlobStore`/`Favicons` 目录创建时未显式设 `0o700` | - | - | fixed |
+| BUG-058 | `LaunchAtLogin` 初始化误触发：`PreferencesStore.init()` 中 `$launchAtLogin` sink 在初始化时因读取 UserDefaults 旧值触发了不必要的 `SMAppService` 调用 | F-41 | - | fixed |
 
 ### P4 — 优化项
 
 | Bug ID | 描述 | 关联功能 | 关联测试 | 状态 |
 |---|---|---|---|---|
-| BUG-059 | `deleteClip` 不擦除内存：只删除模型和文件，Swift String 内容留在堆内存直到 ARC 回收 | F-38 | - | open |
-| BUG-060 | `BlobStore.read()` 缺少路径遍历保护：`delete()` 有 `hasPrefix` 校验但 `read()` 没有 | F-15 | - | open |
-| BUG-061 | HotKey 依赖版本使用 `from: "0.2.0"` 未锁定精确版本，存在供应链风险 | - | - | open |
+| BUG-059 | `deleteClip` 不擦除内存：只删除模型和文件，Swift String 内容留在堆内存直到 ARC 回收 — Swift CoW 值类型无法手动覆写堆内存，wontfix | F-38 | - | wontfix |
+| BUG-060 | `BlobStore.read()` 缺少路径遍历保护：`delete()` 有 `hasPrefix` 校验但 `read()` 没有 | F-15 | - | fixed |
+| BUG-061 | HotKey 依赖版本使用 `from: "0.2.0"` 未锁定精确版本，存在供应链风险 | - | - | fixed |
