@@ -152,7 +152,7 @@ struct SidebarView: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: showsLabels ? .leading : .center)
             .padding(.horizontal, showsLabels ? 10 : 4)
             .padding(.vertical, 6)
             .background(isActive ? boardColor.opacity(0.16) : Color.clear)

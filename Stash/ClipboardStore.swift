@@ -112,7 +112,6 @@ final class ClipboardStore: ObservableObject {
             dominantColors: result.dominantColors,
             colorHex: result.colorHex,
             colorRGB: result.colorRGB,
-            codeLanguage: result.codeLanguage,
             fileName: result.fileName
         )
 

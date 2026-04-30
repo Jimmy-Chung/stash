@@ -30,7 +30,6 @@ final class SearchService {
             (clip.sourceApp?.localizedCaseInsensitiveContains(query) ?? false) ||
             (clip.title?.localizedCaseInsensitiveContains(query) ?? false) ||
             (clip.fileName?.localizedCaseInsensitiveContains(query) ?? false) ||
-            (clip.codeLanguage?.localizedCaseInsensitiveContains(query) ?? false) ||
             (clip.colorHex?.localizedCaseInsensitiveContains(query) ?? false)
         }
     }

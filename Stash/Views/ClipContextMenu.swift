@@ -151,7 +151,7 @@ struct EditClipView: View {
                 .foregroundColor(.white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 6)
-                .background(Color(red: 244/255, green: 162/255, blue: 97/255))
+                .background(Color(red: 120/255, green: 112/255, blue: 242/255))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
