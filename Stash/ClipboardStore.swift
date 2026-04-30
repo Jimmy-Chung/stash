@@ -10,6 +10,7 @@ final class ClipboardStore: ObservableObject {
     @Published var filterType: ClipType? { didSet { recomputeDisplayClips() } }
     @Published var activePinboardId: UUID? { didSet { recomputeDisplayClips() } }
     @Published private(set) var displayClips: [Clip] = []
+    @Published private(set) var pinboardClipCounts: [UUID: Int] = [:]
 
     var activePinboard: Pinboard? {
         guard let id = activePinboardId else { return nil }
@@ -137,15 +138,14 @@ final class ClipboardStore: ObservableObject {
     // MARK: - Clip Operations
 
     func deleteClips(_ clipsToRemove: [Clip]) {
+        let ids = Set(clipsToRemove.map { $0.id })
         for item in clipsToRemove {
             if let path = item.imagePath {
                 BlobStore.shared.delete(path)
             }
             modelContext.delete(item)
         }
-        clips.removeAll { clip in
-            clipsToRemove.contains(where: { $0.id == clip.id })
-        }
+        clips.removeAll { ids.contains($0.id) }
     }
 
     func deleteClip(_ clip: Clip) {
@@ -334,6 +334,13 @@ final class ClipboardStore: ObservableObject {
         }
 
         displayClips = result.sorted { $0.createdAt > $1.createdAt }
+
+        var counts: [UUID: Int] = [:]
+        for clip in clips where clip.pinboardId != nil {
+            counts[clip.pinboardId!, default: 0] += 1
+        }
+        pinboardClipCounts = counts
+
         let ms = (CFAbsoluteTimeGetCurrent() - start) * 1000
         if ms > 5 { NSLog("[Perf] recomputeDisplayClips: %.1fms, %d clips", ms, displayClips.count) }
     }
@@ -351,7 +358,8 @@ final class ClipboardStore: ObservableObject {
     }
 
     private func loadFromContext() {
-        let clipDescriptor = FetchDescriptor<Clip>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        var clipDescriptor = FetchDescriptor<Clip>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        clipDescriptor.fetchLimit = 200
         do {
             clips = try modelContext.fetch(clipDescriptor)
         } catch {

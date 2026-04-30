@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 final class BlobStore {
     static let shared = BlobStore()
@@ -19,7 +20,15 @@ final class BlobStore {
         let fileName = UUID().uuidString + ".png"
         let url = baseDirectory.appendingPathComponent(fileName)
         do {
-            try data.write(to: url)
+            var finalData = data
+            if data.count > 102_400,
+               let image = NSImage(data: data),
+               let tiff = image.tiffRepresentation,
+               let bitmap = NSBitmapImageRep(data: tiff),
+               let jpeg = bitmap.representation(using: NSBitmapImageRep.FileType.jpeg, properties: [.compressionFactor: 0.8]) {
+                finalData = jpeg
+            }
+            try finalData.write(to: url)
             return url.path
         } catch {
             return nil

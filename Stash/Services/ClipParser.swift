@@ -130,12 +130,13 @@ enum ClipParser {
             return ParsedClip(type: .link, textContent: urlString.trimmingCharacters(in: .whitespacesAndNewlines), imageData: nil)
         }
 
-        // 6. String content - detect subtypes
+        // 6. String content - detect subtypes (cap at 1MB to prevent OOM)
         if let text = pasteboard.string(forType: .string),
            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let capped = String(text.prefix(1_000_000))
             if let special = detectSpecialType(trimmed) { return special }
-            return ParsedClip(type: .text, textContent: text, imageData: nil)
+            return ParsedClip(type: .text, textContent: capped, imageData: nil)
         }
 
         return nil

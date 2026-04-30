@@ -44,7 +44,7 @@ final class LinkMetadataService {
                             }
                             semaphore.signal()
                         }
-                        semaphore.wait()
+                        _ = semaphore.wait(timeout: .now() + 10)
                     }
 
                     let result = LinkMeta(

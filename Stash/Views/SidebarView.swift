@@ -113,7 +113,7 @@ struct SidebarView: View {
     @ViewBuilder
     private func pinboardRow(_ board: Pinboard) -> some View {
         let isActive = store.activePinboardId == board.id
-        let clipCount = store.clips.filter { $0.pinboardId == board.id }.count
+        let clipCount = store.pinboardClipCounts[board.id] ?? 0
         let boardColor = Color(hex: board.accent) ?? accentColor
 
         Button(action: {
