@@ -49,6 +49,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Delete corrupted/incompatible database and retry
             let url = NSPersistentContainer.defaultDirectoryURL().appendingPathComponent("default.store")
             try? FileManager.default.removeItem(at: url)
+            try? FileManager.default.removeItem(at: url.appendingPathExtension("wal"))
+            try? FileManager.default.removeItem(at: url.appendingPathExtension("shm"))
             do {
                 modelContainer = try ModelContainer(for: Clip.self, Pinboard.self)
             } catch {

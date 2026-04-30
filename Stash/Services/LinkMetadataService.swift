@@ -19,7 +19,11 @@ final class LinkMetadataService {
 
         do {
             try OBJCExceptionCatcher.`try`({
-                self.provider.startFetchingMetadata(for: url) { metadata, error in
+                var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+                components?.query = nil
+                components?.fragment = nil
+                let cleanURL = components?.url ?? url
+                self.provider.startFetchingMetadata(for: cleanURL) { metadata, error in
                     guard error == nil, let metadata = metadata else {
                         completion(nil)
                         return
@@ -33,14 +37,14 @@ final class LinkMetadataService {
                             if let data = data as? Data {
                                 let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
                                 let faviconDir = appSupport.appendingPathComponent("Stash/Favicons", isDirectory: true)
-                                try? FileManager.default.createDirectory(at: faviconDir, withIntermediateDirectories: true)
+                                try? FileManager.default.createDirectory(at: faviconDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
                                 let path = faviconDir.appendingPathComponent("\(url.host ?? UUID().uuidString).ico")
                                 try? data.write(to: path, options: .atomicWrite)
                                 faviconPath = path.path
                             }
                             semaphore.signal()
                         }
-                        semaphore.wait()
+                        _ = semaphore.wait(timeout: .now() + 10)
                     }
 
                     let result = LinkMeta(

@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 final class BlobStore {
     static let shared = BlobStore()
@@ -12,14 +13,22 @@ final class BlobStore {
             let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
             self.baseDirectory = appSupport.appendingPathComponent("Stash/Blobs", isDirectory: true)
         }
-        try? FileManager.default.createDirectory(at: self.baseDirectory, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: self.baseDirectory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
     }
 
     func write(_ data: Data) -> String? {
         let fileName = UUID().uuidString + ".png"
         let url = baseDirectory.appendingPathComponent(fileName)
         do {
-            try data.write(to: url)
+            var finalData = data
+            if data.count > 102_400,
+               let image = NSImage(data: data),
+               let tiff = image.tiffRepresentation,
+               let bitmap = NSBitmapImageRep(data: tiff),
+               let jpeg = bitmap.representation(using: NSBitmapImageRep.FileType.jpeg, properties: [.compressionFactor: 0.8]) {
+                finalData = jpeg
+            }
+            try finalData.write(to: url)
             return url.path
         } catch {
             return nil
@@ -27,7 +36,9 @@ final class BlobStore {
     }
 
     func read(path: String) -> Data? {
-        try? Data(contentsOf: URL(fileURLWithPath: path))
+        let resolved = URL(fileURLWithPath: path).standardized
+        guard resolved.path.hasPrefix(baseDirectory.standardized.path) else { return nil }
+        return try? Data(contentsOf: resolved)
     }
 
     func delete(_ path: String) {

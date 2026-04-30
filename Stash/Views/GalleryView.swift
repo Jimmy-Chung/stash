@@ -95,15 +95,9 @@ struct GalleryView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .stashShowPinPicker)) { _ in
             if store.clip(at: store.selectedIndex) != nil {
-                if store.pinboards.isEmpty {
-                    if let clip = store.clip(at: store.selectedIndex) {
-                        store.togglePin(clip)
-                    }
-                } else {
-                    pinPickerIndex = 0
-                    showPinPicker = true
-                    NotificationCenter.default.post(name: .stashPinPickerStateChanged, object: nil, userInfo: ["visible": true])
-                }
+                pinPickerIndex = 0
+                showPinPicker = true
+                NotificationCenter.default.post(name: .stashPinPickerStateChanged, object: nil, userInfo: ["visible": true])
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .stashPinPickerUp)) { _ in

@@ -25,14 +25,13 @@ final class SearchService {
     static func filter(clips: [Clip], query: String) -> [Clip] {
         guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return clips }
 
-        let lower = query.lowercased()
         return clips.filter { clip in
-            (clip.textContent?.lowercased().contains(lower) ?? false) ||
-            (clip.sourceApp?.lowercased().contains(lower) ?? false) ||
-            (clip.title?.lowercased().contains(lower) ?? false) ||
-            (clip.fileName?.lowercased().contains(lower) ?? false) ||
-            (clip.codeLanguage?.lowercased().contains(lower) ?? false) ||
-            (clip.colorHex?.lowercased().contains(lower) ?? false)
+            (clip.textContent?.localizedCaseInsensitiveContains(query) ?? false) ||
+            (clip.sourceApp?.localizedCaseInsensitiveContains(query) ?? false) ||
+            (clip.title?.localizedCaseInsensitiveContains(query) ?? false) ||
+            (clip.fileName?.localizedCaseInsensitiveContains(query) ?? false) ||
+            (clip.codeLanguage?.localizedCaseInsensitiveContains(query) ?? false) ||
+            (clip.colorHex?.localizedCaseInsensitiveContains(query) ?? false)
         }
     }
 

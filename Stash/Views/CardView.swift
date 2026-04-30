@@ -183,11 +183,21 @@ struct CardView: View {
 
     // MARK: - Image (CSS .cb-image)
 
+    private func thumbnailImage(for path: String) -> NSImage? {
+        if let cached = Self.thumbnailCache.object(forKey: path as NSString) {
+            return cached
+        }
+        guard let full = NSImage(contentsOfFile: path) else { return nil }
+        let thumb = full.thumbnail(maxSide: 300)
+        Self.thumbnailCache.setObject(thumb, forKey: path as NSString)
+        return thumb
+    }
+
     private var imageBody: some View {
         VStack(spacing: 10) {
             Group {
                 if let imagePath = clip.imagePath,
-                   let nsImage = NSImage(contentsOfFile: imagePath) {
+                   let nsImage = thumbnailImage(for: imagePath) {
                     Image(nsImage: nsImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -464,21 +474,36 @@ struct CardView: View {
         .padding(.vertical, 10)
     }
 
+    private static let iconCache = NSCache<NSString, NSImage>()
+    private static let thumbnailCache: NSCache<NSString, NSImage> = {
+        let cache = NSCache<NSString, NSImage>()
+        cache.countLimit = 50
+        return cache
+    }()
+
     private func appIcon(for appName: String) -> NSImage {
-        for app in NSWorkspace.shared.runningApplications {
-            if app.localizedName == appName, let icon = app.icon {
-                return icon
+        if let cached = Self.iconCache.object(forKey: appName as NSString) {
+            return cached
+        }
+        let icon: NSImage
+        if let running = NSWorkspace.shared.runningApplications.first(where: { $0.localizedName == appName }),
+           let appIcon = running.icon {
+            icon = appIcon
+        } else {
+            let path = "/Applications/\(appName).app"
+            if FileManager.default.fileExists(atPath: path) {
+                icon = NSWorkspace.shared.icon(forFile: path)
+            } else {
+                let systemPath = "/System/Applications/\(appName).app"
+                if FileManager.default.fileExists(atPath: systemPath) {
+                    icon = NSWorkspace.shared.icon(forFile: systemPath)
+                } else {
+                    icon = NSWorkspace.shared.icon(forFileType: "public.generic-application")
+                }
             }
         }
-        let path = "/Applications/\(appName).app"
-        if FileManager.default.fileExists(atPath: path) {
-            return NSWorkspace.shared.icon(forFile: path)
-        }
-        let systemPath = "/System/Applications/\(appName).app"
-        if FileManager.default.fileExists(atPath: systemPath) {
-            return NSWorkspace.shared.icon(forFile: systemPath)
-        }
-        return NSWorkspace.shared.icon(forFileType: "public.generic-application")
+        Self.iconCache.setObject(icon, forKey: appName as NSString)
+        return icon
     }
 
     private func relativeTimeString(for date: Date) -> String {
@@ -521,5 +546,21 @@ extension Color {
             green: Double((rgb & 0x00FF00) >> 8) / 255.0,
             blue: Double(rgb & 0x0000FF) / 255.0
         )
+    }
+}
+
+extension NSImage {
+    func thumbnail(maxSide: CGFloat) -> NSImage {
+        let size = self.size
+        guard size.width > 0, size.height > 0 else { return self }
+        let scale = min(maxSide / size.width, maxSide / size.height, 1.0)
+        let newSize = NSSize(width: size.width * scale, height: size.height * scale)
+        let thumb = NSImage(size: newSize)
+        thumb.lockFocus()
+        self.draw(in: NSRect(origin: .zero, size: newSize),
+                  from: NSRect(origin: .zero, size: size),
+                  operation: .copy, fraction: 1.0)
+        thumb.unlockFocus()
+        return thumb
     }
 }
