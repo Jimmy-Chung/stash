@@ -27,6 +27,10 @@ struct ParsedClip {
 
 enum ClipParser {
     static func parse(_ pasteboard: NSPasteboard) -> ParsedClip? {
+        // Skip password manager concealed content (1Password, Bitwarden, etc.)
+        let concealed = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
+        if pasteboard.types?.contains(concealed) == true { return nil }
+
         // 1. File URL — MUST check before image data.
         //    Finder puts file icons as TIFF on the clipboard, so if we check
         //    image data first, file copies get misclassified as images.

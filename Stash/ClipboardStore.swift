@@ -58,6 +58,45 @@ final class ClipboardStore: ObservableObject {
         let pasteboard = NSPasteboard.general
         guard let result = ClipParser.parse(pasteboard) else { return }
 
+        let sourceApp = NSWorkspace.shared.frontmostApplication?.localizedName
+
+        // Image processing is heavy (hash, disk write, metadata) — offload to background
+        if result.type == .image, let imageData = result.imageData {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                let hash = DedupeHasher.hash(data: result.hashData)
+
+                // Snapshot lastContentHash for dedup check (benign race acceptable)
+                guard hash != self?.lastContentHash else { return }
+                guard let path = BlobStore.shared.write(imageData) else { return }
+
+                DispatchQueue.main.async {
+                    guard let self = self else { return }
+                    self.lastContentHash = hash
+
+                    let clip = Clip(
+                        type: result.type,
+                        textContent: nil,
+                        sourceApp: sourceApp,
+                        contentHash: hash,
+                        title: result.title,
+                        imageWidth: result.imageWidth,
+                        imageHeight: result.imageHeight,
+                        dominantColors: result.dominantColors
+                    )
+                    clip.imagePath = path
+                    self.modelContext.insert(clip)
+                    if let boardId = self.activePinboardId { clip.pinboardId = boardId }
+                    self.clips.insert(clip, at: 0)
+                    self.selectedIndex = 0
+                    if PreferencesStore.shared.soundEnabled {
+                        NSSound(named: "Tink")?.play()
+                    }
+                }
+            }
+            return
+        }
+
+        // Text-based clips — fast, stay on main thread
         let hash = DedupeHasher.hash(data: result.hashData)
         if hash == lastContentHash { return }
         lastContentHash = hash
@@ -65,7 +104,7 @@ final class ClipboardStore: ObservableObject {
         let clip = Clip(
             type: result.type,
             textContent: result.textContent,
-            sourceApp: NSWorkspace.shared.frontmostApplication?.localizedName,
+            sourceApp: sourceApp,
             contentHash: hash,
             title: result.title,
             imageWidth: result.imageWidth,
@@ -76,11 +115,6 @@ final class ClipboardStore: ObservableObject {
             codeLanguage: result.codeLanguage,
             fileName: result.fileName
         )
-
-        if result.type == .image, let imageData = result.imageData {
-            guard let path = BlobStore.shared.write(imageData) else { return }
-            clip.imagePath = path
-        }
 
         modelContext.insert(clip)
 

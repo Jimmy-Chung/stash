@@ -19,7 +19,11 @@ final class LinkMetadataService {
 
         do {
             try OBJCExceptionCatcher.`try`({
-                self.provider.startFetchingMetadata(for: url) { metadata, error in
+                var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+                components?.query = nil
+                components?.fragment = nil
+                let cleanURL = components?.url ?? url
+                self.provider.startFetchingMetadata(for: cleanURL) { metadata, error in
                     guard error == nil, let metadata = metadata else {
                         completion(nil)
                         return
