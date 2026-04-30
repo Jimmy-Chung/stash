@@ -65,8 +65,10 @@ enum ClipParser {
             let ext = url.pathExtension.lowercased()
             let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "bmp", "tiff", "tif", "webp", "heic", "heif"]
 
-            // If it's an image file, read data and classify as image
+            // If it's an image file, read data and classify as image (max 50MB)
             if imageExtensions.contains(ext),
+               let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+               let fileSize = attrs[.size] as? Int, fileSize < 50_000_000,
                let data = try? Data(contentsOf: url) {
                 var clip = ParsedClip(type: .image, textContent: nil, imageData: data)
                 if let meta = ImageMetadataService.extract(from: data) {
@@ -86,8 +88,9 @@ enum ClipParser {
         }
 
         // 2. Image data (PNG, TIFF) — only reached if no file URL was found.
-        //    This handles images copied from image editors, screenshots, etc.
-        if let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
+        //    This handles images copied from image editors, screenshots, etc. (max 50MB)
+        if let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff),
+           data.count < 50_000_000 {
             var clip = ParsedClip(type: .image, textContent: nil, imageData: data)
             if let meta = ImageMetadataService.extract(from: data) {
                 clip.imageWidth = meta.width
